@@ -13,8 +13,7 @@ from processing import process_single_file
 from transformations import transform_to_output_schema
 
 import json
-with open('google_credentials.json', 'r') as f:
-    credentials_dict = json.load(f)
+credentials_dict = dict(st.secrets["gcp_service_account"])
 
 
 
