@@ -20,214 +20,312 @@ credentials_dict = dict(st.secrets["gcp_service_account"])
 st.set_page_config(page_title="PRC: Chapter Statistical Report - Data Consolidation", layout="wide")
 
 st.title("🔄 PRC: Chapter Statistical Report - Data Consolidation Tool")
-st.markdown("Transform and consolidate multiple Chapter Statistical Reports into one standardized output.")
+st.markdown("Transform and consolidate multiple Chapter Statistical Reports into either a DMS 5W or an OpCen DSR Daily Activities format.")
 
-col1, col2, col3 = st.columns(3)
+tab1, tab2 = st.tabs(["📖 How to Use", "📊 Tool"])
 
-with col1:
-    sheet_name = st.text_input(
-        "What is the Sheet Name?",
-        value=DEFAULT_SHEET_NAME,
-        help="Leave as default if the sheet name hasn't changed"
-    )
+with tab1:
+    st.markdown("""## How to Use This Tool
 
-with col2:
-    header_row = st.number_input(
-        "What Row are the Headers on?",
-        value=DEFAULT_HEADER_ROW,
-        min_value=1,
-        step=1,
-        help="Leave as default if unchanged"
-    )
+This tool consolidates multiple DSR (Disaster Services Report) activity files into a single standardized output format.
 
-with col3:
-    output_format = st.selectbox(
-        "Output Format:",
-        ["DMS_5W", "OpCen_DSR_DA"],
-        help="Choose which format to transform the data into"
-    )
+### Quick Start Guide
 
-st.divider()
+```
+📁 Prepare Files → ⚙️ Configure Settings → 📥 Upload/Link Data → 🔄 Process → 💾 Download
+```
 
+---
 
-# Input method selection
-input_method = st.radio(
-    "Choose how to provide raw data files:",
-    ["Google Drive Folder", "Upload Files Manually"],
-    help="Select your preferred input method"
-)
+### Step-by-Step Instructions
 
-if input_method == "Google Drive Folder":
-    gdrive_folder_url = st.text_input(
-        "Google Drive Folder URL",
-        placeholder="https://drive.google.com/drive/folders/...",
-        help="Paste the shareable link to your Google Drive folder containing raw files"
-    )
-    
-    if not gdrive_folder_url:
-        st.warning("⚠️ Please provide a Google Drive folder URL")
-        st.stop()
-        
-elif input_method == "Upload Files Manually":
-    uploaded_files = st.file_uploader(
-        "Upload raw DSR files (.xlsx)",
-        type=['xlsx'],
-        accept_multiple_files=True,
-        help="Select one or more Excel files to process"
-    )
+**1. Configure Your Settings** ⚙️
+- **Sheet Name:** Enter the name of the sheet in your Excel files (default: "Chapter Relief")
+- **Header Row:** Specify which row contains column headers (default: 9)
+- **Output Format:** Choose between:
+  - **DMS_5W** - Full humanitarian reporting format with all metadata
+  - **OpCen_DSR_DA** - Simplified operational center format
 
-st.divider()
+**2. Choose Your Data Source** 📁
 
-# Mapping table loader
-use_default_mapping = st.checkbox(
-    "Use default activity mapping table", 
-    value=True,
-    help="Uncheck to upload a custom mapping table"
-)
+You have two options:
 
-if use_default_mapping:
-    # Load from Google Sheets using service account
-    from google.oauth2.service_account import Credentials
-    import gspread
-    
-    SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
-    creds = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
-    sheets_client = gspread.authorize(creds)
-    
-    # Open the sheet and read data
-    sheet = sheets_client.open_by_key(DEFAULT_MAPPING_SHEET_ID)
-    worksheet = sheet.get_worksheet(0)  # First sheet
-    data = worksheet.get_all_records()
-    mapping_df = pd.DataFrame(data)
-    
-    st.success(f"✅ Using default mapping table with {len(mapping_df)} activities")
-else:
-    # Custom upload stays the same
-    mapping_file = st.file_uploader(
-        "Upload Custom Activity Mapping Table",
-        type=['xlsx', 'csv'],
-        help="Upload your activity mapping table"
-    )
-    
-    if mapping_file is None:
-        st.warning("⚠️ Please upload a mapping table to continue")
-        st.stop()
-    
-    if mapping_file.name.endswith('.csv'):
-        mapping_df = pd.read_csv(mapping_file)
-    else:
-        mapping_df = pd.read_excel(mapping_file)
-    
-    st.success(f"✅ Loaded custom mapping table with {len(mapping_df)} activities")
+- **Google Drive Folder** (Recommended for multiple files):
+  1. Upload all your Excel files to a Google Drive folder
+  2. Set folder sharing to "Anyone with the link can view"
+  3. Copy the folder URL
+  4. Paste it into the tool
 
-with st.expander("📋 View Mapping Table"):
-    st.dataframe(mapping_df.head(10))
+- **Manual Upload**:
+  1. Click "Upload Files Manually"
+  2. Select one or more Excel files (.xlsx)
 
-st.divider()
+**3. Process Your Data** 🔄
 
+Click the upload button or paste your Drive URL. The tool will:
+- Download/read all Excel files
+- Identify activity columns automatically
+- Match activities with the mapping table (with fuzzy matching for typos)
+- Transform data to your chosen output format
+- Consolidate everything into one file
 
+**4. Download Results** 💾
 
-# Raw data file uploader
-#uploaded_file = st.file_uploader(
-    #"Upload ONE raw Chapter Statistical Report (.xlsx)",
-    #type=['xlsx'],
-    #help="Upload a single Excel file to test"
-#)
+- Review the preview of consolidated data
+- Check the "Total Records" summary
+- Click **"Download Consolidated Report"** to save the Excel file
+- Filename includes timestamp: `DSR_Consolidated_YYYYMMDD_HHMMSS.xlsx`
 
-# Get files based on input method
-files_to_process = []
+---
 
-if input_method == "Google Drive Folder":
-    st.info("📁 Downloading files from Google Drive...")
-    folder_id = extract_folder_id(gdrive_folder_url)
-    files_to_process = download_files_from_drive(folder_id, credentials_dict)
-    
-    if not files_to_process:
-        st.error("❌ No Excel files found in the folder")
-        st.stop()
-    
-    st.success(f"✅ Downloaded {len(files_to_process)} files from Google Drive")
-    
-elif input_method == "Upload Files Manually":
-    if uploaded_files:
-        files_to_process = uploaded_files
-    else:
-        st.warning("⚠️ Please upload files to continue")
-        st.stop()
+### Output Files
 
-# Process all files
-# Process all files
-if files_to_process:
-    st.info(f"🔄 Processing {len(files_to_process)} file(s)...")
-    
-    all_outputs = []
-    progress_bar = st.progress(0)
-    
-    for idx, file in enumerate(files_to_process):
-        st.write(f"**Processing file:** {file.name}")
-        
-        try:
-            # Process the file
-            processed_df = process_single_file(file, mapping_df, sheet_name, header_row, STATIC_COLUMNS)
-            
-            if processed_df is not None:
-                st.write(f"✅ Processed {len(processed_df)} rows")
-                # Transform to output schema
-                # Transform based on selected format
-                if output_format == "DMS_5W":
-                    output_df = transform_to_output_schema(processed_df)
-                elif output_format == "OpCen_DSR_DA":
-                    output_df = transform_to_opcen_format(processed_df)
-                all_outputs.append(output_df)
-                st.write(f"✅ Transformed to {len(output_df)} output rows")
-            else:
-                st.warning(f"⚠️ No valid data found in {file.name}")
-        
-        except Exception as e:
-            st.error(f"❌ Error processing {file.name}: {str(e)}")
-            st.exception(e)
-        
-        # Update progress
-        progress_bar.progress((idx + 1) / len(files_to_process))
-    
-    # Check if we got any valid data
-    if not all_outputs:
-        st.error("❌ No valid data found in the uploaded files")
-        st.stop()
-    
-    # Concatenate all outputs
-    final_df = pd.concat(all_outputs, ignore_index=True)
-    
-    st.success(f"✅ Successfully processed {len(files_to_process)} file(s)!")
-    
-# Summary statistics
-    st.subheader("📊 Summary")
-    st.metric("Total Records", len(final_df))
-    
-    # Show preview
-    st.subheader("📋 Final Output Preview")
-    st.dataframe(final_df.head(20))
-    
-    # Download section
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown("<h3 style='text-align: center;'>📥 Download</h3>", unsafe_allow_html=True)
-    
-    # Create Excel fileF
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        final_df.to_excel(writer, index=False, sheet_name='Consolidated Data')
-    
-    output.seek(0)
-    
-    # Download button
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.download_button(
-            label="📥 Download Consolidated Report",
-            data=output,
-            file_name=f"DSR_Consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            type="primary",
-            use_container_width=True
+Your download will contain:
+- **Mapped Activities Sheet** - All successfully processed activities
+- **Unmapped Activities Sheet** (if any) - Activities not found in the mapping table
+
+---
+
+### Tips for Best Results
+
+✅ **Ensure consistent file structure** - All files should have the same basic layout
+✅ **Check mapping table** - New activity types should be added to the Google Sheet mapping table
+✅ **Use public folders** - Google Drive folders must be set to "Anyone with link" for access
+✅ **Verify dates** - Dates should be in mm/dd/yyyy format in source files
+✅ **Review unmapped activities** - Add any unmapped items to the mapping table for future runs
+
+---
+
+### Troubleshooting
+
+**Problem:** Activities marked as "unmapped"
+- **Solution:** Add the activity to the Google Sheets mapping table with proper categorization
+
+**Problem:** Wrong columns appearing in output
+- **Solution:** Verify sheet name and header row number are correct
+
+**Problem:** Google Drive files not downloading
+- **Solution:** Ensure folder is shared as "Anyone with the link can view"
+
+**Problem:** Date formatting issues
+- **Solution:** Check that dates in source files are in mm/dd/yyyy format
+
+---
+
+### Need Help?
+
+Contact your system administrator or data team for assistance with:
+- Adding new activities to the mapping table
+- Troubleshooting file format issues
+- Questions about output formats""")
+
+with tab2:
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        sheet_name = st.text_input(
+            "What is the Sheet Name?",
+            value=DEFAULT_SHEET_NAME,
+            help="Leave as default if the sheet name hasn't changed"
         )
+
+    with col2:
+        header_row = st.number_input(
+            "What Row are the Headers on?",
+            value=DEFAULT_HEADER_ROW,
+            min_value=1,
+            step=1,
+            help="Leave as default if unchanged"
+        )
+
+    with col3:
+        output_format = st.selectbox(
+            "Output Format:",
+            ["DMS_5W", "OpCen_DSR_DA"],
+            help="Choose which format to transform the data into"
+        )
+
+    st.divider()
+
+
+    # Input method selection
+    input_method = st.radio(
+        "Choose how to provide raw data files:",
+        ["Google Drive Folder", "Upload Files Manually"],
+        help="Select your preferred input method"
+    )
+
+    if input_method == "Google Drive Folder":
+        gdrive_folder_url = st.text_input(
+            "Google Drive Folder URL",
+            placeholder="https://drive.google.com/drive/folders/...",
+            help="Paste the shareable link to your Google Drive folder containing raw files"
+        )
+        
+        if not gdrive_folder_url:
+            st.warning("⚠️ Please provide a Google Drive folder URL")
+            st.stop()
+            
+    elif input_method == "Upload Files Manually":
+        uploaded_files = st.file_uploader(
+            "Upload raw DSR files (.xlsx)",
+            type=['xlsx'],
+            accept_multiple_files=True,
+            help="Select one or more Excel files to process"
+        )
+
+    st.divider()
+
+    # Mapping table loader
+    use_default_mapping = st.checkbox(
+        "Use default activity mapping table", 
+        value=True,
+        help="Uncheck to upload a custom mapping table"
+    )
+
+    if use_default_mapping:
+        # Load from Google Sheets using service account
+        from google.oauth2.service_account import Credentials
+        import gspread
+        
+        SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+        creds = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
+        sheets_client = gspread.authorize(creds)
+        
+        # Open the sheet and read data
+        sheet = sheets_client.open_by_key(DEFAULT_MAPPING_SHEET_ID)
+        worksheet = sheet.get_worksheet(0)  # First sheet
+        data = worksheet.get_all_records()
+        mapping_df = pd.DataFrame(data)
+        
+        st.success(f"✅ Using default mapping table with {len(mapping_df)} activities")
+    else:
+        # Custom upload stays the same
+        mapping_file = st.file_uploader(
+            "Upload Custom Activity Mapping Table",
+            type=['xlsx', 'csv'],
+            help="Upload your activity mapping table"
+        )
+        
+        if mapping_file is None:
+            st.warning("⚠️ Please upload a mapping table to continue")
+            st.stop()
+        
+        if mapping_file.name.endswith('.csv'):
+            mapping_df = pd.read_csv(mapping_file)
+        else:
+            mapping_df = pd.read_excel(mapping_file)
+        
+        st.success(f"✅ Loaded custom mapping table with {len(mapping_df)} activities")
+
+    with st.expander("📋 View Mapping Table"):
+        st.dataframe(mapping_df.head(10))
+
+    st.divider()
+
+
+
+    # Raw data file uploader
+    #uploaded_file = st.file_uploader(
+        #"Upload ONE raw Chapter Statistical Report (.xlsx)",
+        #type=['xlsx'],
+        #help="Upload a single Excel file to test"
+    #)
+
+    # Get files based on input method
+    files_to_process = []
+
+    if input_method == "Google Drive Folder":
+        st.info("📁 Downloading files from Google Drive...")
+        folder_id = extract_folder_id(gdrive_folder_url)
+        files_to_process = download_files_from_drive(folder_id, credentials_dict)
+        
+        if not files_to_process:
+            st.error("❌ No Excel files found in the folder")
+            st.stop()
+        
+        st.success(f"✅ Downloaded {len(files_to_process)} files from Google Drive")
+        
+    elif input_method == "Upload Files Manually":
+        if uploaded_files:
+            files_to_process = uploaded_files
+        else:
+            st.warning("⚠️ Please upload files to continue")
+            st.stop()
+
+    # Process all files
+    # Process all files
+    if files_to_process:
+        st.info(f"🔄 Processing {len(files_to_process)} file(s)...")
+        
+        all_outputs = []
+        progress_bar = st.progress(0)
+        
+        for idx, file in enumerate(files_to_process):
+            st.write(f"**Processing file:** {file.name}")
+            
+            try:
+                # Process the file
+                processed_df = process_single_file(file, mapping_df, sheet_name, header_row, STATIC_COLUMNS)
+                
+                if processed_df is not None:
+                    st.write(f"✅ Processed {len(processed_df)} rows")
+                    # Transform to output schema
+                    # Transform based on selected format
+                    if output_format == "DMS_5W":
+                        output_df = transform_to_output_schema(processed_df)
+                    elif output_format == "OpCen_DSR_DA":
+                        output_df = transform_to_opcen_format(processed_df)
+                    all_outputs.append(output_df)
+                    st.write(f"✅ Transformed to {len(output_df)} output rows")
+                else:
+                    st.warning(f"⚠️ No valid data found in {file.name}")
+            
+            except Exception as e:
+                st.error(f"❌ Error processing {file.name}: {str(e)}")
+                st.exception(e)
+            
+            # Update progress
+            progress_bar.progress((idx + 1) / len(files_to_process))
+        
+        # Check if we got any valid data
+        if not all_outputs:
+            st.error("❌ No valid data found in the uploaded files")
+            st.stop()
+        
+        # Concatenate all outputs
+        final_df = pd.concat(all_outputs, ignore_index=True)
+        
+        st.success(f"✅ Successfully processed {len(files_to_process)} file(s)!")
+        
+    # Summary statistics
+        st.subheader("📊 Summary")
+        st.metric("Total Records", len(final_df))
+        
+        # Show preview
+        st.subheader("📋 Final Output Preview")
+        st.dataframe(final_df.head(20))
+        
+        # Download section
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("<h3 style='text-align: center;'>📥 Download</h3>", unsafe_allow_html=True)
+        
+        # Create Excel fileF
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            final_df.to_excel(writer, index=False, sheet_name='Consolidated Data')
+        
+        output.seek(0)
+        
+        # Download button
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.download_button(
+                label="📥 Download Consolidated Report",
+                data=output,
+                file_name=f"DSR_Consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                type="primary",
+                use_container_width=True
+            )
