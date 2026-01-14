@@ -194,7 +194,11 @@ if files_to_process:
     with col1:
         st.metric("Total Activities", len(final_df))
     with col2:
-        st.metric("Total Beneficiaries", int(final_df['# of Beneficiaries Served'].sum()))
+        if '# of Beneficiaries Served' in final_df.columns:
+            st.metric("Total Beneficiaries", int(final_df['# of Beneficiaries Served'].sum()))
+        else:
+            st.metric("Total Beneficiaries", "N/A (column not found)")
+            st.error(f"Available columns: {list(final_df.columns)}")
     with col3:
         st.metric("Total Cost", f"₱{final_df['Total Cost'].sum():,.2f}")
     
@@ -207,7 +211,7 @@ if files_to_process:
     with col2:
         st.markdown("<h3 style='text-align: center;'>📥 Download</h3>", unsafe_allow_html=True)
     
-    # Create Excel file
+    # Create Excel fileF
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         final_df.to_excel(writer, index=False, sheet_name='Consolidated Data')

@@ -1,5 +1,24 @@
 import pandas as pd
 
+def calculate_beneficiaries(row):
+    try:
+        count = pd.to_numeric(row.get('Count', 0), errors='coerce')
+        if pd.isna(count):
+            count = 0
+        
+        beneficiary_type = row.get('Beneficiary Served', '')
+        
+        if beneficiary_type == 'Families':
+            return count * 5
+        elif beneficiary_type == 'Individuals':
+            return count
+        else:
+            # Try to use value from mapping table
+            mapped_value = row.get('# of beneficiaries served', 0)
+            return pd.to_numeric(mapped_value, errors='coerce') or 0
+    except:
+        return 0
+
 
 def transform_to_output_schema(df):
     """
@@ -22,13 +41,7 @@ def transform_to_output_schema(df):
     output_df['Activity'] = output_df.get('Activity', None)
     output_df['Materials/Service Provided'] = output_df.get('Assistance? Materials/service', None)
     output_df['Unit'] = output_df.get('Unit', None)
-    # Calculate beneficiaries based on type
-    output_df['# of Beneficiaries Served'] = output_df.apply(
-        lambda row: row['Count'] * 5 if row.get('Beneficiary Served') == 'Families' 
-                    else row['Count'] if row.get('Beneficiary Served') == 'Individuals'
-                    else row.get('# of beneficiaries served'),
-        axis=1
-    )
+    output_df['# of Beneficiaries Served'] = output_df.apply(calculate_beneficiaries, axis=1)
     output_df['Primary Beneficiary Served'] = output_df.get('Beneficiary Served', None)
     
     # Location columns
