@@ -190,17 +190,20 @@ if files_to_process:
     
     # Summary statistics
     st.subheader("📊 Summary")
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
+
+    families_count = final_df[final_df['Primary Beneficiary Served'] == 'Families']['Count'].sum()
+    individuals_count = final_df[final_df['Primary Beneficiary Served'] == 'Individuals']['Count'].sum()
+    total_beneficiaries = pd.to_numeric(final_df['# of Beneficiaries Served'], errors='coerce').sum()
+
     with col1:
         st.metric("Total Activities", len(final_df))
     with col2:
-        if '# of Beneficiaries Served' in final_df.columns:
-            st.metric("Total Beneficiaries", int(final_df['# of Beneficiaries Served'].sum()))
-        else:
-            st.metric("Total Beneficiaries", "N/A (column not found)")
-            st.error(f"Available columns: {list(final_df.columns)}")
+        st.metric("Total Beneficiaries", int(total_beneficiaries), help="Individuals + (Families × 5)")
     with col3:
-        st.metric("Total Cost", f"₱{final_df['Total Cost'].sum():,.2f}")
+        st.metric("Families Reached", int(families_count))
+    with col4:
+        st.metric("Individuals Reached", int(individuals_count))
     
     # Show preview
     st.subheader("📋 Final Output Preview")
