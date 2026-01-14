@@ -22,8 +22,7 @@ st.set_page_config(page_title="PRC: Chapter Statistical Report - Data Consolidat
 st.title("🔄 PRC: Chapter Statistical Report - Data Consolidation Tool")
 st.markdown("Transform and consolidate multiple Chapter Statistical Reports into one standardized output.")
 
-# Configuration inputs
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
     sheet_name = st.text_input(
@@ -39,6 +38,13 @@ with col2:
         min_value=1,
         step=1,
         help="Leave as default if unchanged"
+    )
+
+with col3:
+    output_format = st.selectbox(
+        "Output Format:",
+        ["DMS_5W", "OpCen_DSR_DA"],
+        help="Choose which format to transform the data into"
     )
 
 st.divider()
@@ -119,12 +125,7 @@ with st.expander("📋 View Mapping Table"):
 
 st.divider()
 
-# Output format selection
-output_format = st.radio(
-    "Select output format:",
-    ["DMS_5W", "OpCen_DSR_DA"],
-    help="Choose which format to transform the data into"
-)
+
 
 # Raw data file uploader
 #uploaded_file = st.file_uploader(

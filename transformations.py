@@ -114,7 +114,7 @@ def transform_to_opcen_format(df):
     output_df = df.copy()
     
     # OpCen column mappings
-    output_df['DATE'] = pd.to_datetime(output_df.get('Date of Activity'), errors='coerce')
+    output_df['DATE'] = pd.to_datetime(output_df.get('Date of Activity'), format='mixed', errors='coerce')
     output_df['REGION'] = None  # Will be added via PCodes later
     output_df['PROVINCE'] = output_df.get('Province', None)
     output_df['CHAPTER'] = output_df.get('Chapter', None)
