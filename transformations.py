@@ -22,7 +22,13 @@ def transform_to_output_schema(df):
     output_df['Activity'] = output_df.get('Activity', None)
     output_df['Materials/Service Provided'] = output_df.get('Assistance? Materials/service', None)
     output_df['Unit'] = output_df.get('Unit', None)
-    output_df['# of Beneficiaries Served'] = output_df.get('# of beneficiaries served', None)
+    # Calculate beneficiaries based on type
+    output_df['# of Beneficiaries Served'] = output_df.apply(
+        lambda row: row['Count'] * 5 if row.get('Beneficiary Served') == 'Families' 
+                    else row['Count'] if row.get('Beneficiary Served') == 'Individuals'
+                    else row.get('# of beneficiaries served'),
+        axis=1
+    )
     output_df['Primary Beneficiary Served'] = output_df.get('Beneficiary Served', None)
     
     # Location columns

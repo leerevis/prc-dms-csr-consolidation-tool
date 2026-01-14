@@ -13,8 +13,7 @@ from processing import process_single_file
 from transformations import transform_to_output_schema
 
 import json
-with open('google_credentials.json', 'r') as f:
-    credentials_dict = json.load(f)
+credentials_dict = dict(st.secrets["gcp_service_account"])
 
 
 
@@ -195,7 +194,7 @@ if files_to_process:
     with col1:
         st.metric("Total Activities", len(final_df))
     with col2:
-        st.metric("Total Beneficiaries", int(final_df['Count'].sum()))
+        st.metric("Total Beneficiaries", int(final_df['# of Beneficiaries Served'].sum()))
     with col3:
         st.metric("Total Cost", f"₱{final_df['Total Cost'].sum():,.2f}")
     
