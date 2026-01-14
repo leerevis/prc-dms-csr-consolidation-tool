@@ -201,26 +201,7 @@ if files_to_process:
     
 # Summary statistics
     st.subheader("📊 Summary")
-    col1, col2, col3, col4 = st.columns(4)
-
-    # Calculate metrics based on format
-    if output_format == "DMS_5W":
-        families_count = final_df[final_df['Primary Beneficiary Served'] == 'Families']['Count'].sum()
-        individuals_count = final_df[final_df['Primary Beneficiary Served'] == 'Individuals']['Count'].sum()
-        total_beneficiaries = pd.to_numeric(final_df['# of Beneficiaries Served'], errors='coerce').sum()
-    else:  # OpCen_DSR_DA
-        families_count = 0  # OpCen doesn't distinguish families vs individuals in the same way
-        individuals_count = 0
-        total_beneficiaries = pd.to_numeric(final_df['BENEFICIARIES'], errors='coerce').sum()
-
-    with col1:
-        st.metric("Total Activities", len(final_df))
-    with col2:
-        st.metric("Total Beneficiaries", int(total_beneficiaries), help="Individuals + (Families × 5)" if output_format == "DMS_5W" else None)
-    with col3:
-        st.metric("Individuals Reached", int(individuals_count) if output_format == "DMS_5W" else "N/A")
-    with col4:
-        st.metric("Families Reached", int(families_count) if output_format == "DMS_5W" else "N/A")
+    st.metric("Total Records", len(final_df))
     
     # Show preview
     st.subheader("📋 Final Output Preview")

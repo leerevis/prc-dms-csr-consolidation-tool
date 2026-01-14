@@ -41,7 +41,7 @@ def transform_to_output_schema(df):
     output_df['Activity'] = output_df.get('Activity', None)
     output_df['Materials/Service Provided'] = output_df.get('Assistance? Materials/service', None)
     output_df['Unit'] = output_df.get('Unit', None)
-    output_df['# of Beneficiaries Served'] = output_df.apply(calculate_beneficiaries, axis=1)
+    output_df['# of Beneficiaries Served'] = output_df.get('# of beneficiaries served', None)
     output_df['Primary Beneficiary Served'] = output_df.get('Beneficiary Served', None)
     
     # Location columns
@@ -137,8 +137,8 @@ def transform_to_opcen_format(df):
     output_df['LONGITUDE'] = None  # Will be added via PCodes later
     output_df['PHOTO LINK'] = None
     
-    # Calculate beneficiaries using same logic
-    output_df['BENEFICIARIES'] = output_df.apply(calculate_beneficiaries, axis=1)
+    # Keep raw beneficiary type - no calculation
+    output_df['BENEFICIARIES'] = output_df.get('Beneficiary Served', None)
     
     # Select final columns in correct order
     opcen_columns = [
