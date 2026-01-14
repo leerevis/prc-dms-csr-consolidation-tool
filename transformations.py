@@ -103,3 +103,49 @@ def transform_to_output_schema(df):
     available_columns = [col for col in final_columns if col in output_df.columns]
     
     return output_df[available_columns]
+
+def transform_to_opcen_format(df):
+    """
+    Transform processed data to OpCen_DSR_DA format.
+    
+    Returns: DataFrame with OpCen columns
+    """
+    
+    output_df = df.copy()
+    
+    # OpCen column mappings
+    output_df['DATE'] = pd.to_datetime(output_df.get('Date of Activity'), errors='coerce')
+    output_df['REGION'] = None  # Will be added via PCodes later
+    output_df['PROVINCE'] = output_df.get('Province', None)
+    output_df['CHAPTER'] = output_df.get('Chapter', None)
+    output_df['MUNICIPALITY'] = output_df.get('Municipality/City', None)
+    output_df['BARANGAY'] = output_df.get('Barangay', None)
+    output_df['EXACT LOCATION'] = output_df.get('Location Notes/Place/Evacuation Center', 
+                                                  output_df.get('Location Notes/Place /Evacuation Center', None))
+    output_df['SERVICE'] = None  # To be added later
+    output_df['INTERVENTION_TYPE'] = output_df.get('Activity', None)
+    
+    # Calculate QTY and beneficiaries
+    output_df['QTY'] = pd.to_numeric(output_df.get('Count', 0), errors='coerce').fillna(0)
+    output_df['UNIT'] = output_df.get('Unit', None)
+    output_df['MENU'] = output_df.get('Additional Comments', None)
+    output_df['MEALS'] = None
+    output_df['PARTNERS'] = output_df.get('Relief Donor', None)
+    output_df['PLATE NUMBER'] = None
+    output_df['VEHICLE'] = None
+    output_df['LATITUDE'] = None  # Will be added via PCodes later
+    output_df['LONGITUDE'] = None  # Will be added via PCodes later
+    output_df['PHOTO LINK'] = None
+    
+    # Calculate beneficiaries using same logic
+    output_df['BENEFICIARIES'] = output_df.apply(calculate_beneficiaries, axis=1)
+    
+    # Select final columns in correct order
+    opcen_columns = [
+        'DATE', 'REGION', 'PROVINCE', 'CHAPTER', 'MUNICIPALITY', 'BARANGAY',
+        'EXACT LOCATION', 'SERVICE', 'INTERVENTION_TYPE', 'QTY', 'UNIT',
+        'MENU', 'MEALS', 'PARTNERS', 'PLATE NUMBER', 'VEHICLE',
+        'LATITUDE', 'LONGITUDE', 'PHOTO LINK', 'BENEFICIARIES'
+    ]
+    
+    return output_df[opcen_columns]

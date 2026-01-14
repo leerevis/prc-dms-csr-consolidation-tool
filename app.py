@@ -10,7 +10,7 @@ from googleapiclient.http import MediaIoBaseDownload
 from config import STATIC_COLUMNS, DEFAULT_SHEET_NAME, DEFAULT_HEADER_ROW, DEFAULT_MAPPING_SHEET_ID
 from utils import extract_folder_id, download_files_from_drive, is_static_column, fuzzy_match_activity
 from processing import process_single_file
-from transformations import transform_to_output_schema
+from transformations import transform_to_output_schema, transform_to_opcen_format
 
 import json
 credentials_dict = dict(st.secrets["gcp_service_account"])
@@ -119,12 +119,19 @@ with st.expander("📋 View Mapping Table"):
 
 st.divider()
 
-# Raw data file uploader
-uploaded_file = st.file_uploader(
-    "Upload ONE raw Chapter Statistical Report (.xlsx)",
-    type=['xlsx'],
-    help="Upload a single Excel file to test"
+# Output format selection
+output_format = st.radio(
+    "Select output format:",
+    ["DMS_5W", "OpCen_DSR_DA"],
+    help="Choose which format to transform the data into"
 )
+
+# Raw data file uploader
+#uploaded_file = st.file_uploader(
+    #"Upload ONE raw Chapter Statistical Report (.xlsx)",
+    #type=['xlsx'],
+    #help="Upload a single Excel file to test"
+#)
 
 # Get files based on input method
 files_to_process = []
@@ -165,7 +172,11 @@ if files_to_process:
             if processed_df is not None:
                 st.write(f"✅ Processed {len(processed_df)} rows")
                 # Transform to output schema
-                output_df = transform_to_output_schema(processed_df)
+                # Transform based on selected format
+                if output_format == "DMS_5W":
+                    output_df = transform_to_output_schema(processed_df)
+                elif output_format == "OpCen_DSR_DA":
+                    output_df = transform_to_opcen_format(processed_df)
                 all_outputs.append(output_df)
                 st.write(f"✅ Transformed to {len(output_df)} output rows")
             else:
@@ -201,9 +212,9 @@ if files_to_process:
     with col2:
         st.metric("Total Beneficiaries", int(total_beneficiaries), help="Individuals + (Families × 5)")
     with col3:
-        st.metric("Families Reached", int(families_count))
-    with col4:
         st.metric("Individuals Reached", int(individuals_count))
+    with col4:
+        st.metric("Families Reached", int(families_count))
     
     # Show preview
     st.subheader("📋 Final Output Preview")
