@@ -20,14 +20,14 @@ credentials_dict = dict(st.secrets["gcp_service_account"])
 st.set_page_config(page_title="PRC: Chapter Statistical Report - Data Consolidation", layout="wide")
 
 st.title("🔄 PRC: Chapter Statistical Report - Data Consolidation Tool")
-st.markdown("Transform and consolidate multiple Chapter Statistical Reports into either a DMS 5W or an OpCen DSR Daily Activities format.")
+st.markdown("Transform and consolidate the Chapter Relief data from multiple Chapter Statistical Reports into either a Disaster Management Services 5W or an OpCen Disaster Statistical Report Daily Activities format.")
 
 tab1, tab2 = st.tabs(["📖 How to Use", "📊 Tool"])
 
 with tab1:
     st.markdown("""## How to Use This Tool
 
-This tool consolidates multiple DSR (Disaster Services Report) activity files into a single standardized output format.
+This tool consolidates the Chapter Relief data from multiple Chapter Statistical Report activity files into a single standardised output format.
 
 ### Quick Start Guide
 
@@ -43,22 +43,22 @@ This tool consolidates multiple DSR (Disaster Services Report) activity files in
 - **Sheet Name:** Enter the name of the sheet in your Excel files (default: "Chapter Relief")
 - **Header Row:** Specify which row contains column headers (default: 9)
 - **Output Format:** Choose between:
-  - **DMS_5W** - Full humanitarian reporting format with all metadata
-  - **OpCen_DSR_DA** - Simplified operational center format
+  - **DMS 5W** - For external audiences and returning
+  - **OpCen DSR DA** - For the daily assistance sheet of the OpCen Disaster Statistical Report
 
 **2. Choose Your Data Source** 📁
 
 You have two options:
 
 - **Google Drive Folder** (Recommended for multiple files):
-  1. Upload all your Excel files to a Google Drive folder
-  2. Set folder sharing to "Anyone with the link can view"
+  1. Upload all your Google files to a Google Drive folder
+  2. Set both file and folder sharing to "Anyone with the link can view"
   3. Copy the folder URL
   4. Paste it into the tool
 
 - **Manual Upload**:
   1. Click "Upload Files Manually"
-  2. Select one or more Excel files (.xlsx)
+  2. Select one or more Excel files (.xlsx) or Google Sheets
 
 **3. Process Your Data** 🔄
 
@@ -88,11 +88,11 @@ Your download will contain:
 
 ### Tips for Best Results
 
-✅ **Ensure consistent file structure** - All files should have the same basic layout
-✅ **Check mapping table** - New activity types should be added to the Google Sheet mapping table
-✅ **Use public folders** - Google Drive folders must be set to "Anyone with link" for access
-✅ **Verify dates** - Dates should be in mm/dd/yyyy format in source files
-✅ **Review unmapped activities** - Add any unmapped items to the mapping table for future runs
+- **Ensure consistent file structure** - All files should use the Chapter Statistical Report template
+- **Check mapping table** - New activity types should be added to the Google Sheet Activity Taxonomy, with permission from DMS
+- **Use public folders** - Google Drive folders must be set to "Anyone with link" for access
+- **Verify dates** - Dates should be in mm/dd/yyyy format in source files
+- **Review unmapped activities** - Add any unmapped items to the mapping table for future runs, with permission from DMS
 
 ---
 
@@ -110,14 +110,7 @@ Your download will contain:
 **Problem:** Date formatting issues
 - **Solution:** Check that dates in source files are in mm/dd/yyyy format
 
----
-
-### Need Help?
-
-Contact your system administrator or data team for assistance with:
-- Adding new activities to the mapping table
-- Troubleshooting file format issues
-- Questions about output formats""")
+""")
 
 with tab2:
     col1, col2, col3 = st.columns(3)
@@ -272,9 +265,9 @@ with tab2:
                     st.write(f"✅ Processed {len(processed_df)} rows")
                     # Transform to output schema
                     # Transform based on selected format
-                    if output_format == "DMS_5W":
+                    if output_format == "DMS 5W":
                         output_df = transform_to_output_schema(processed_df)
-                    elif output_format == "OpCen_DSR_DA":
+                    elif output_format == "OpCen DSR DA":
                         output_df = transform_to_opcen_format(processed_df)
                     all_outputs.append(output_df)
                     st.write(f"✅ Transformed to {len(output_df)} output rows")
@@ -312,10 +305,15 @@ with tab2:
             st.markdown("<h3 style='text-align: center;'>📥 Download</h3>", unsafe_allow_html=True)
         
         # Create Excel fileF
+        # Create Excel file with multiple sheets
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            final_df.to_excel(writer, index=False, sheet_name='Consolidated Data')
-        
+            # Sheet 1: Successfully mapped activities
+            final_df.to_excel(writer, index=False, sheet_name='Mapped Activities')
+            
+            # Sheet 2: Unmapped activities (if any exist)
+            # We need to collect these during processing...
+
         output.seek(0)
         
         # Download button
