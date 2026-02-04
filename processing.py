@@ -13,13 +13,24 @@ def process_single_file(file, mapping_df, sheet_name, header_row, static_columns
     Returns: DataFrame ready for transformation, or None if no valid data
     """
     
-    # Read the Excel file
-    df = pd.read_excel(
-        file,
-        sheet_name=sheet_name,
-        skiprows=header_row-1,
-        dtype=str
-    )
+    try:
+        df = pd.read_excel(
+            file,
+            sheet_name=sheet_name,
+            skiprows=header_row-1,
+            dtype=str
+        )
+    except ValueError as e:
+        # Sheet name not found
+        if "Worksheet named" in str(e):
+            raise ValueError(
+                f"❌ Sheet '{sheet_name}' not found in {file.name}. "
+                f"Please check the sheet name or ask the uploader to use the correct template."
+            )
+        else:
+            raise e
+    except Exception as e:
+        raise Exception(f"❌ Error reading {file.name}: {str(e)}. File may be corrupted or in wrong format.")
     
     # Identify activity columns using fuzzy matching
     activity_cols = [col for col in df.columns if not is_static_column(col, static_columns)]
@@ -57,10 +68,11 @@ def process_single_file(file, mapping_df, sheet_name, header_row, static_columns
         how='left'
     )
     
-    # Keep only successfully mapped rows
-    mapped_df = melted_df[melted_df['Sector'].notna()].copy()
-    
-    if mapped_df.empty:
+    # Keep ALL rows, including unmapped ones
+    # Just return the full melted dataframe after mapping
+    if melted_df.empty:
         return None
+
+    return melted_df
     
     return mapped_df

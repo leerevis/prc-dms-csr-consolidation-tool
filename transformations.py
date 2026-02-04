@@ -29,7 +29,20 @@ def transform_to_output_schema(df):
     """
     
     output_df = df.copy()
-    
+
+    # Add validation flag for unmapped activities
+    output_df['Validation Status'] = output_df['Sector'].apply(
+        lambda x: 'FOR VALIDATION' if pd.isna(x) else 'Validated'
+    )
+
+    # For unmapped rows, populate with raw activity name
+    unmapped_mask = output_df['Sector'].isna()
+    output_df.loc[unmapped_mask, 'Sector/Cluster'] = 'REQUIRES MAPPING'
+    output_df.loc[unmapped_mask, 'Activity'] = 'UNMAPPED ACTIVITY'
+    # Show the original activity name in Materials/Service
+    if 'RawItemName' in output_df.columns:
+        output_df.loc[unmapped_mask, 'Materials/Service Provided'] = output_df['RawItemName']
+
     # Static values
     output_df['Organisation'] = 'Philippine Red Cross'
     output_df['Implementing Partner/Supported By'] = output_df.get('Relief Donor', None)
@@ -96,7 +109,7 @@ def transform_to_output_schema(df):
         "DSR Intervention Team", "Count", "Unit", "# of Beneficiaries Served",
         "Primary Beneficiary Served", "DSR Unit", "Status", "Start Date", "End Date",
         "Source", "Signature", "Weather System", "Remarks", "Date Modified",
-        "ACTIVITY COSTING", "Total Cost", "Month"
+        "ACTIVITY COSTING", "Total Cost", "Month", "Validation Status"
     ]
     
     # Only include columns that exist
