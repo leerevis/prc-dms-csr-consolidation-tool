@@ -36,16 +36,13 @@ def transform_to_output_schema(df):
     )
 
     # For unmapped rows, populate with raw activity name
+    # For unmapped rows, populate with raw activity name
     unmapped_mask = (output_df['Sector'].isna()) | (output_df['Sector'] == '') | (output_df['Sector'].str.strip() == '')
     output_df.loc[unmapped_mask, 'Sector/Cluster'] = 'REQUIRES MAPPING'
 
-    # Check which RawItemName column exists (could be RawItemName, RawItemName_x, or MatchedActivity)
+    # Use RawItemName_x (the original activity name)
     if 'RawItemName_x' in output_df.columns:
         output_df.loc[unmapped_mask, 'Materials/Service Provided'] = output_df.loc[unmapped_mask, 'RawItemName_x']
-    elif 'RawItemName' in output_df.columns:
-        output_df.loc[unmapped_mask, 'Materials/Service Provided'] = output_df.loc[unmapped_mask, 'RawItemName']
-    elif 'MatchedActivity' in output_df.columns:
-        output_df.loc[unmapped_mask, 'Materials/Service Provided'] = output_df.loc[unmapped_mask, 'MatchedActivity']
 
     # Static values
     output_df['Organisation'] = 'Philippine Red Cross'
