@@ -134,7 +134,7 @@ with tab2:
     with col3:
         output_format = st.selectbox(
             "Output Format:",
-            ["DMS_5W", "OpCen_DSR_DA"],
+            ["DMS 5W", "OpCen DSR Daily Assistance"],
             help="Choose which format to transform the data into"
         )
 
@@ -267,7 +267,7 @@ with tab2:
                     # Transform based on selected format
                     if output_format == "DMS 5W":
                         output_df = transform_to_output_schema(processed_df)
-                    elif output_format == "OpCen DSR DA":
+                    elif output_format == "OpCen DSR Daily Asssitance":
                         output_df = transform_to_opcen_format(processed_df)
                     all_outputs.append(output_df)
                     st.write(f"✅ Transformed to {len(output_df)} output rows")
