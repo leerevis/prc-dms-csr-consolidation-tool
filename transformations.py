@@ -30,18 +30,16 @@ def transform_to_output_schema(df):
     
     output_df = df.copy()
 
-    # Add validation flag for unmapped activities
+    # Add validation flag - treat blank Sector as unmapped
     output_df['Validation Status'] = output_df['Sector'].apply(
-        lambda x: 'FOR VALIDATION' if pd.isna(x) else 'Validated'
+        lambda x: 'FOR VALIDATION' if (pd.isna(x) or x == '' or str(x).strip() == '') else 'Validated'
     )
 
-    # For unmapped rows, populate with raw activity name
-    unmapped_mask = output_df['Sector'].isna()
+    # For unmapped rows (null OR blank Sector), populate with raw activity name
+    unmapped_mask = (output_df['Sector'].isna()) | (output_df['Sector'] == '') | (output_df['Sector'].str.strip() == '')
     output_df.loc[unmapped_mask, 'Sector/Cluster'] = 'REQUIRES MAPPING'
-    output_df.loc[unmapped_mask, 'Activity'] = 'UNMAPPED ACTIVITY'
-    # Show the original activity name in Materials/Service
     if 'RawItemName' in output_df.columns:
-        output_df.loc[unmapped_mask, 'Materials/Service Provided'] = output_df['RawItemName']
+        output_df.loc[unmapped_mask, 'Materials/Service Provided'] = output_df.loc[unmapped_mask, 'RawItemName']
 
     # Static values
     output_df['Organisation'] = 'Philippine Red Cross'
