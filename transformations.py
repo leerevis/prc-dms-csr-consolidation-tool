@@ -79,11 +79,36 @@ def transform_to_output_schema(df):
     # Calculate beneficiaries using the new logic
     output_df['# of Beneficiaries Served'] = output_df.apply(calculate_beneficiaries, axis=1)
 
-    # Add validation flag for beneficiary calculations
-    beneficiary_missing = output_df['# of Beneficiaries Served'].isna()
-    output_df.loc[beneficiary_missing, 'Beneficiary Calculation Status'] = 'NEEDS REVIEW'
-    output_df.loc[~beneficiary_missing, 'Beneficiary Calculation Status'] = 'Calculated'
-    output_df['Primary Beneficiary Served'] = output_df.get('Beneficiary Served', None)
+    # Update Validation Status to include beneficiary issues
+    def determine_validation_status(row):
+        has_mapping_error = (
+            pd.isna(row.get('Sector')) or 
+            str(row.get('Sector', '')).strip() == '' or
+            str(row.get('Activity', '')).strip().upper() == 'NEEDS MAPPING' or
+            str(row.get('Sector', '')).strip().upper() == 'NEEDS MAPPING'
+        )
+        has_beneficiary_error = pd.isna(row.get('# of Beneficiaries Served'))
+        
+        if has_mapping_error and has_beneficiary_error:
+            return 'Check'
+        elif has_mapping_error:
+            return 'Check Mapping'
+        elif has_beneficiary_error:
+            return 'Check Beneficiaries'
+        else:
+            return 'For Validation'
+
+    output_df['Validation Status'] = output_df.apply(determine_validation_status, axis=1)
+
+    # DEBUG: Show what's happening
+    print("DEBUG: Beneficiary calculation results")
+    print(f"Total rows: {len(output_df)}")
+    print(f"Calculated: {output_df['# of Beneficiaries Served'].notna().sum()}")
+    print(f"Missing: {output_df['# of Beneficiaries Served'].isna().sum()}")
+    print("\nSample row with data:")
+    sample = output_df[['Count', 'Quantity', 'People_Per_Beneficiary', 'Unit', '# of Beneficiaries Served']].head(3)
+    print(sample)
+
     
     # Location columns
     output_df['Region'] = None
@@ -135,7 +160,6 @@ def transform_to_output_schema(df):
         "Sub Sector", "Region", "Province", "Prov_CODE", "Municipality/City", "Mun_Code",
         "Barangay", "Place Name", "Activity", "Materials/Service Provided",
         "DSR Intervention Team", "Count", "Unit", "# of Beneficiaries Served",
-        "Beneficiary Calculation Status",  # ← Add this
         "Primary Beneficiary Served", "DSR Unit", "Status", "Start Date", "End Date",
         "Source", "Signature", "Weather System", "Remarks", "Date Modified",
         "ACTIVITY COSTING", "Total Cost", "Month", "Validation Status"
