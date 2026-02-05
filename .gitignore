@@ -1,0 +1,10 @@
+# Local setup scripts
+bigquery_setup/
+
+# Credentials (just in case)
+google_credentials.json
+*.json
+
+# Python cache
+__pycache__/
+*.pyc
