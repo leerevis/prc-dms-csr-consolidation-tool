@@ -1,23 +1,26 @@
 import pandas as pd
 
 def calculate_beneficiaries(row):
-    try:
-        count = pd.to_numeric(row.get('Count', 0), errors='coerce')
-        if pd.isna(count):
-            count = 0
-        
-        beneficiary_type = row.get('Beneficiary Served', '')
-        
-        if beneficiary_type == 'Families':
-            return count * 5
-        elif beneficiary_type == 'Individuals':
-            return count
-        else:
-            # Try to use value from mapping table
-            mapped_value = row.get('# of beneficiaries served', 0)
-            return pd.to_numeric(mapped_value, errors='coerce') or 0
-    except:
-        return 0
+    count = pd.to_numeric(row.get('Count', 0), errors='coerce') or 0
+    quantity = pd.to_numeric(row.get('Quantity'), errors='coerce')
+    people_per_beneficiary = pd.to_numeric(row.get('People_Per_Beneficiary'), errors='coerce')
+    unit = str(row.get('Unit', '')).strip().upper()
+    
+    # Flag cash for manual review - too ambiguous
+    if unit in ['PESOS', 'PHP', 'CASH', 'PESO']:
+        return None
+    
+    # If Quantity is missing/NA/0, can't calculate
+    if pd.isna(quantity) or quantity == 0:
+        return None
+    
+    # If People_Per_Beneficiary is missing, can't calculate
+    if pd.isna(people_per_beneficiary) or people_per_beneficiary == 0:
+        return None
+    
+    # Calculate: (Count / Items_Per_Beneficiary) × People_Per_Beneficiary
+    beneficiary_units = count / quantity
+    return beneficiary_units * people_per_beneficiary
 
 
 def transform_to_output_schema(df):
@@ -73,7 +76,13 @@ def transform_to_output_schema(df):
     output_df.loc[mapped_mask, 'Materials/Service Provided'] = output_df.loc[mapped_mask, 'Assistance? Materials/service']
 
     output_df['Unit'] = output_df.get('Unit', None)
-    output_df['# of Beneficiaries Served'] = output_df.get('# of beneficiaries served', None)
+    # Calculate beneficiaries using the new logic
+    output_df['# of Beneficiaries Served'] = output_df.apply(calculate_beneficiaries, axis=1)
+
+    # Add validation flag for beneficiary calculations
+    beneficiary_missing = output_df['# of Beneficiaries Served'].isna()
+    output_df.loc[beneficiary_missing, 'Beneficiary Calculation Status'] = 'NEEDS REVIEW'
+    output_df.loc[~beneficiary_missing, 'Beneficiary Calculation Status'] = 'Calculated'
     output_df['Primary Beneficiary Served'] = output_df.get('Beneficiary Served', None)
     
     # Location columns
@@ -126,6 +135,7 @@ def transform_to_output_schema(df):
         "Sub Sector", "Region", "Province", "Prov_CODE", "Municipality/City", "Mun_Code",
         "Barangay", "Place Name", "Activity", "Materials/Service Provided",
         "DSR Intervention Team", "Count", "Unit", "# of Beneficiaries Served",
+        "Beneficiary Calculation Status",  # ← Add this
         "Primary Beneficiary Served", "DSR Unit", "Status", "Start Date", "End Date",
         "Source", "Signature", "Weather System", "Remarks", "Date Modified",
         "ACTIVITY COSTING", "Total Cost", "Month", "Validation Status"
