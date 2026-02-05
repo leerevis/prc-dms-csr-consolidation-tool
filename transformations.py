@@ -220,8 +220,8 @@ def transform_to_opcen_format(df):
     output_df['LONGITUDE'] = None  # Will be added via PCodes later
     output_df['PHOTO LINK'] = None
     
-    # Keep raw beneficiary type - no calculation
-    output_df['BENEFICIARIES'] = output_df.get('Beneficiary Served', None)
+    # Calculate beneficiaries using the same logic as DMS 5W
+    output_df['BENEFICIARIES'] = output_df.apply(calculate_beneficiaries, axis=1)
     
     # Select final columns in correct order
     opcen_columns = [

@@ -27,10 +27,9 @@ tab1, tab2 = st.tabs(["📖 How to Use", "📊 Tool"])
 with tab1:
     st.markdown("""## How to Use This Tool
 
-This tool consolidates the Chapter Relief data from multiple Chapter Statistical Report activity files into a single standardised output format.
+This tool consolidates Chapter Relief data from multiple Chapter Statistical Reports into a single standardized output format.
 
 ### Quick Start Guide
-
 ```
 📁 Prepare Files → ⚙️ Configure Settings → 📥 Upload/Link Data → 🔄 Process → 💾 Download
 ```
@@ -40,75 +39,164 @@ This tool consolidates the Chapter Relief data from multiple Chapter Statistical
 ### Step-by-Step Instructions
 
 **1. Configure Your Settings** ⚙️
-- **Sheet Name:** Enter the name of the sheet in your Excel files (default: "Chapter Relief")
-- **Header Row:** Specify which row contains column headers (default: 9)
-- **Output Format:** Choose between:
-  - **DMS 5W** - For external audiences and returning
-  - **OpCen DSR DA** - For the daily assistance sheet of the OpCen Disaster Statistical Report
 
-**2. Choose Your Data Source** 📁
+- **Sheet Name:** Name of the worksheet in your Excel files (default: "Chapter Relief")
+  - Only change if your files use a different sheet name
+  - Must match exactly (case-sensitive)
 
-You have two options:
+- **Header Row:** Row number where column headers are located (default: 9)
+  - Count from the top of the sheet
+  - Only change if using a modified template
 
-- **Google Drive Folder** (Recommended for multiple files):
-  1. Upload all your Google files to a Google Drive folder
-  2. Set both file and folder sharing to "Anyone with the link can view"
-  3. Copy the folder URL
-  4. Paste it into the tool
-
-- **Manual Upload**:
-  1. Click "Upload Files Manually"
-  2. Select one or more Excel files (.xlsx) or Google Sheets
-
-**3. Process Your Data** 🔄
-
-Click the upload button or paste your Drive URL. The tool will:
-- Download/read all Excel files
-- Identify activity columns automatically
-- Match activities with the mapping table (with fuzzy matching for typos)
-- Transform data to your chosen output format
-- Consolidate everything into one file
-
-**4. Download Results** 💾
-
-- Review the preview of consolidated data
-- Check the "Total Records" summary
-- Click **"Download Consolidated Report"** to save the Excel file
-- Filename includes timestamp: `DSR_Consolidated_YYYYMMDD_HHMMSS.xlsx`
+- **Output Format:** Choose your report format:
+  - **DMS 5W** - Full humanitarian reporting format for external partners
+  - **OpCen DSR Daily Assistance** - Simplified format for OpCen daily reports
 
 ---
 
-### Output Files
+**2. Prepare Your Data** 📁
 
-Your download will contain:
-- **Mapped Activities Sheet** - All successfully processed activities
-- **Unmapped Activities Sheet** (if any) - Activities not found in the mapping table
+**Google Drive Option (Recommended):**
+
+*For Google Drive Folders:*
+1. Create a folder in Google Drive
+2. Add all your Chapter Statistical Report files to this folder
+3. Right-click the folder → Share → Change to "Anyone with the link"
+4. Set permission to "Viewer"
+5. Click "Copy link"
+6. Paste the link into the tool
+
+*For Individual Google Sheets:*
+1. Open the Google Sheet
+2. Click Share → Change to "Anyone with the link"
+3. Set permission to "Viewer"
+4. Click "Copy link"
+5. Paste the link into the tool
+
+**Manual Upload Option:**
+- Click "Upload Files Manually"
+- Select one or more Excel files (.xlsx)
+- Files can be Excel downloads or Google Sheets saved as .xlsx
+
+**Important:** The tool works with:
+- ✅ Google Drive folder links (multiple files)
+- ✅ Individual Google Sheet links
+- ✅ Excel files uploaded directly (.xlsx format only)
+
+---
+
+**3. Activity Mapping Table** 📋
+
+The tool uses a standardized activity mapping table to categorize your activities.
+
+- **Default mapping:** Leave "Use default activity mapping table" checked
+- **Custom mapping:** Uncheck to upload your own mapping file
+
+If activities in your files don't match the mapping table, they'll be flagged for review in the output.
+
+---
+
+**4. Process Your Data** 🔄
+
+After configuring settings and providing your data source, the tool will:
+1. Download/read all files
+2. Identify activity columns automatically using fuzzy matching (handles typos)
+3. Match activities against the mapping table
+4. Calculate beneficiaries served using standardized formulas
+5. Apply validation flags to identify issues
+6. Transform data to your chosen output format
+7. Consolidate everything into one file
+
+Processing time depends on file size and number of files (typically 10-30 seconds per file).
+
+---
+
+**5. Review & Download Results** 💾
+
+**Preview the Output:**
+- Check the "Total Records" count
+- Review the data preview table
+- Look for validation flags in the "Validation Status" column
+
+**Validation Status Meanings:**
+- **For Validation:** Activity mapped successfully, ready for manual review
+- **Check Mapping:** Activity not found in mapping table or has incomplete mapping data
+- **Check Beneficiaries:** Beneficiary calculation failed (missing Quantity or People_Per_Beneficiary)
+- **Check:** Both mapping and beneficiary issues present
+
+**Download:**
+- Click "Download Consolidated Report"
+- File saved as: `DSR_Consolidated_YYYYMMDD_HHMMSS.xlsx`
+- Contains one sheet with all consolidated data
+
+---
+
+### Common Errors & Solutions
+
+**"Sheet 'Chapter Relief' not found"**
+- **Cause:** The sheet name in your file doesn't match the configured name
+- **Solution:** Check the sheet name in your Excel file (look at the tab at the bottom) and update the "Sheet Name" setting to match exactly
+
+**"No Excel files found in the folder"**
+- **Cause:** Google Drive folder is empty or contains no .xlsx files
+- **Solution:** Verify you've uploaded .xlsx files to the folder, or that Google Sheets in the folder are being detected
+
+**"Could not read as Google Sheet or download as Excel"**
+- **Cause:** File sharing permissions incorrect or file is corrupted
+- **Solution:** 
+  1. Verify the file is shared as "Anyone with the link can view"
+  2. Try downloading the file manually to check if it opens
+  3. If it's a Google Sheet, try downloading as Excel and uploading directly
+
+**"APIError: This operation is not supported for this document"**
+- **Cause:** File is not a native Google Sheet (uploaded Excel file being viewed in Sheets)
+- **Solution:** The tool will automatically try to download as Excel - ensure sharing permissions are set to "Anyone with the link can view"
+
+**Activities showing "Check Mapping" status**
+- **Cause:** Activity name not found in the mapping table
+- **Solution:** Contact DMS to add the activity to the Activity Mapping Table, or check for typos in the activity name
+
+**Activities showing "Check Beneficiaries" status**
+- **Cause:** Missing "Quantity" or "People_Per_Beneficiary" data in the mapping table for this activity
+- **Solution:** Contact DMS to complete the mapping table entry for this activity
+
+**Beneficiaries showing as blank**
+- **Cause:** Cash/monetary activities or activities that can't be converted to people (e.g., water in liters, stations)
+- **Solution:** These require manual beneficiary entry - fill in manually after export
+
+**Date columns showing strange values**
+- **Cause:** Date format in source file not recognized
+- **Solution:** Ensure dates in source files are in mm/dd/yyyy format or Excel date format
 
 ---
 
 ### Tips for Best Results
 
-- **Ensure consistent file structure** - All files should use the Chapter Statistical Report template
-- **Check mapping table** - New activity types should be added to the Google Sheet Activity Taxonomy, with permission from DMS
-- **Use public folders** - Google Drive folders must be set to "Anyone with link" for access
-- **Verify dates** - Dates should be in mm/dd/yyyy format in source files
-- **Review unmapped activities** - Add any unmapped items to the mapping table for future runs, with permission from DMS
+✅ **Use the official Chapter Statistical Report template** - Don't add or remove columns
+
+✅ **Consistent naming** - Use the same activity names across all your files
+
+✅ **Share correctly** - Always set Google links to "Anyone with the link can view"
+
+✅ **Check your mapping** - If you see many "Check Mapping" flags, verify your activities match the taxonomy
+
+✅ **Review validation flags** - Always check flagged rows before finalizing your report
+
+✅ **Date formatting** - Use Excel date format or mm/dd/yyyy
+
+❌ **Don't modify templates** - Adding custom columns may cause processing errors
+
+❌ **Don't use restricted sharing** - "Restricted" or "People at your organization" sharing won't work
 
 ---
 
-### Troubleshooting
+### Need Help?
 
-**Problem:** Activities marked as "unmapped"
-- **Solution:** Add the activity to the Google Sheets mapping table with proper categorization
-
-**Problem:** Wrong columns appearing in output
-- **Solution:** Verify sheet name and header row number are correct
-
-**Problem:** Google Drive files not downloading
-- **Solution:** Ensure folder is shared as "Anyone with the link can view"
-
-**Problem:** Date formatting issues
-- **Solution:** Check that dates in source files are in mm/dd/yyyy format
+If you encounter issues not covered here:
+1. Check the validation status column in your output for specific error flags
+2. Verify your source files use the correct template
+3. Confirm Google sharing permissions are set correctly
+4. Contact DMS for mapping table updates
 
 """)
 
