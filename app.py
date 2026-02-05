@@ -258,11 +258,13 @@ with tab2:
                     def __init__(self, buffer, name):
                         self.buffer = buffer
                         self.name = name
-                    def read(self):
-                        return self.buffer.read()
+                        
+                    def read(self, size=-1):  # ← Add size parameter with default -1
+                        return self.buffer.read(size)
+                        
                     def seek(self, pos):
                         return self.buffer.seek(pos)
-                
+                    
                 memory_file = MemoryFile(buffer, "GoogleSheet.xlsx")
                 files_to_process = [memory_file]
                 st.success(f"✅ Successfully loaded Google Sheet")
@@ -294,8 +296,10 @@ with tab2:
                         def __init__(self, buffer, name):
                             self.buffer = buffer
                             self.name = name
-                        def read(self):
-                            return self.buffer.read()
+                            
+                        def read(self, size=-1):  # ← Add size parameter with default -1
+                            return self.buffer.read(size)
+                            
                         def seek(self, pos):
                             return self.buffer.seek(pos)
                     
