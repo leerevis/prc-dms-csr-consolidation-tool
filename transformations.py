@@ -31,13 +31,25 @@ def transform_to_output_schema(df):
     output_df = df.copy()
 
     # Add validation flag for unmapped activities
-    output_df['Validation Status'] = output_df['Sector'].apply(
-        lambda x: 'FOR VALIDATION' if (pd.isna(x) or x == '' or str(x).strip() == '') else 'Validated'
+    # Check for null/blank Sector OR placeholder values
+    output_df['Validation Status'] = output_df.apply(
+        lambda row: 'Taxonomy Error' if (
+            pd.isna(row.get('Sector')) or 
+            str(row.get('Sector', '')).strip() == '' or
+            str(row.get('Activity', '')).strip().upper() == 'NEEDS MAPPING' or
+            str(row.get('Sector', '')).strip().upper() == 'NEEDS MAPPING'
+        ) else 'For Validation',
+        axis=1
     )
 
-    # For unmapped rows, populate with raw activity name
-    unmapped_mask = (output_df['Sector'].isna()) | (output_df['Sector'] == '') | (output_df['Sector'].str.strip() == '')
-    output_df.loc[unmapped_mask, 'Sector/Cluster'] = 'REQUIRES MAPPING'
+    # For unmapped rows, use the same expanded mask
+    unmapped_mask = (
+        (output_df['Sector'].isna()) | 
+        (output_df['Sector'] == '') | 
+        (output_df['Sector'].str.strip() == '') |
+        (output_df['Activity'].str.strip().str.upper() == 'NEEDS MAPPING') |
+        (output_df['Sector'].str.strip().str.upper() == 'NEEDS MAPPING')
+    )
 
     # Use RawItemName_x (the original activity name from the raw data)
     if 'RawItemName_x' in output_df.columns:
@@ -133,6 +145,21 @@ def transform_to_opcen_format(df):
     
     output_df = df.copy()
     
+    # Add validation flag for unmapped activities
+    output_df['Validation Status'] = output_df['Sector'].apply(
+        lambda x: 'FOR VALIDATION' if (pd.isna(x) or x == '' or str(x).strip() == '') else 'Validated'
+    )
+
+    # For unmapped rows, populate with raw activity name
+    unmapped_mask = (output_df['Sector'].isna()) | (output_df['Sector'] == '') | (output_df['Sector'].str.strip() == '')
+    output_df.loc[unmapped_mask, 'Sector/Cluster'] = 'REQUIRES MAPPING'
+
+    # Use RawItemName_x (the original activity name from the raw data)
+    if 'RawItemName_x' in output_df.columns:
+        output_df.loc[unmapped_mask, 'INTERVENTION_TYPE'] = output_df.loc[unmapped_mask, 'RawItemName_x']
+    elif 'RawItemName' in output_df.columns:
+        output_df.loc[unmapped_mask, 'INTERVENTION_TYPE'] = output_df.loc[unmapped_mask, 'RawItemName']
+    
     # OpCen column mappings
     output_df['DATE'] = pd.to_datetime(output_df.get('Date of Activity'), format='mixed', errors='coerce')
     output_df['REGION'] = None  # Will be added via PCodes later
@@ -143,8 +170,10 @@ def transform_to_opcen_format(df):
     output_df['EXACT LOCATION'] = output_df.get('Location Notes/Place/Evacuation Center', 
                                                   output_df.get('Location Notes/Place /Evacuation Center', None))
     output_df['SERVICE'] = None  # To be added later
-    output_df['INTERVENTION_TYPE'] = output_df.get('Activity', None)
-    
+    # Only use mapping table value for MAPPED rows
+    mapped_mask = ~unmapped_mask
+    output_df.loc[mapped_mask, 'INTERVENTION_TYPE'] = output_df.loc[mapped_mask, 'Activity']
+        
     # Calculate QTY and beneficiaries
     output_df['QTY'] = pd.to_numeric(output_df.get('Count', 0), errors='coerce').fillna(0)
     output_df['UNIT'] = output_df.get('Unit', None)
