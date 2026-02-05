@@ -144,19 +144,19 @@ with tab2:
     # Input method selection
     input_method = st.radio(
         "Choose how to provide raw data files:",
-        ["Google Drive Folder", "Upload Files Manually"],
-        help="Select your preferred input method"
+        ["Google Link (Folder or Sheet)", "Upload Files Manually"],
+        help="Paste a Google Drive folder or Google Sheet link, or upload Excel files"
     )
 
-    if input_method == "Google Drive Folder":
-        gdrive_folder_url = st.text_input(
-            "Google Drive Folder URL",
-            placeholder="https://drive.google.com/drive/folders/...",
-            help="Paste the shareable link to your Google Drive folder containing raw files"
+    if input_method == "Google Link (Folder or Sheet)":
+        google_url = st.text_input(
+            "Google Drive Folder or Sheet URL",
+            placeholder="https://drive.google.com/... or https://docs.google.com/spreadsheets/...",
+            help="Paste a link to a Google Drive folder (multiple files) or a single Google Sheet"
         )
         
-        if not gdrive_folder_url:
-            st.warning("⚠️ Please provide a Google Drive folder URL")
+        if not google_url:
+            st.warning("⚠️ Please provide a Google link")
             st.stop()
             
     elif input_method == "Upload Files Manually":
@@ -216,29 +216,75 @@ with tab2:
 
     st.divider()
 
-
-
-    # Raw data file uploader
-    #uploaded_file = st.file_uploader(
-        #"Upload ONE raw Chapter Statistical Report (.xlsx)",
-        #type=['xlsx'],
-        #help="Upload a single Excel file to test"
-    #)
-
     # Get files based on input method
     files_to_process = []
 
-    if input_method == "Google Drive Folder":
-        st.info("📁 Downloading files from Google Drive...")
-        folder_id = extract_folder_id(gdrive_folder_url)
-        files_to_process = download_files_from_drive(folder_id, credentials_dict)
+    if input_method == "Google Link (Folder or Sheet)":
+        from utils import detect_google_link_type, extract_folder_id, extract_sheet_id, read_google_sheet, download_files_from_drive
         
-        if not files_to_process:
-            st.error("❌ No Excel files found in the folder")
+        link_type = detect_google_link_type(google_url)
+        
+        if link_type == 'folder':
+            st.info("📁 Detected: Google Drive Folder - Downloading files...")
+            folder_id = extract_folder_id(google_url)
+            files_to_process = download_files_from_drive(folder_id, credentials_dict)
+            
+            if not files_to_process:
+                st.error("❌ No Excel files found in the folder")
+                st.stop()
+            
+            st.success(f"✅ Downloaded {len(files_to_process)} files from Google Drive")
+            
+        elif link_type == 'sheet':
+            st.info("📊 Detected: Google Sheet - Reading data...")
+            sheet_id = extract_sheet_id(google_url)
+            
+            if not sheet_id:
+                st.error("❌ Could not extract Sheet ID from URL")
+                st.stop()
+            
+            try:
+                # Read the Google Sheet as a DataFrame
+                df = read_google_sheet(sheet_id, credentials_dict, sheet_name, header_row)
+                
+                # Convert DataFrame to file-like object so it works with process_single_file
+                # We'll create a temporary Excel file in memory
+                import io
+                buffer = io.BytesIO()
+                with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                    df.to_excel(writer, sheet_name=sheet_name, index=False, header=False, startrow=header_row-1)
+                buffer.seek(0)
+                
+                # Create a file-like object with a name attribute
+                class MemoryFile:
+                    def __init__(self, buffer, name):
+                        self.buffer = buffer
+                        self.name = name
+                        
+                    def read(self):
+                        return self.buffer.read()
+                        
+                    def seek(self, pos):
+                        return self.buffer.seek(pos)
+                
+                memory_file = MemoryFile(buffer, "GoogleSheet.xlsx")
+                files_to_process = [memory_file]
+                
+                st.success(f"✅ Successfully loaded Google Sheet")
+                
+            except Exception as e:
+                st.error(f"❌ Error reading Google Sheet: {str(e)}")
+                st.write("**Troubleshooting:**")
+                st.write("1. Ensure the sheet is shared as 'Anyone with the link can view'")
+                st.write(f"2. Verify the sheet name is '{sheet_name}'")
+                st.write(f"3. Verify headers are on row {header_row}")
+                st.exception(e)
+                st.stop()
+        
+        else:
+            st.error("❌ Invalid Google link. Please provide a Google Drive folder or Google Sheets URL.")
             st.stop()
-        
-        st.success(f"✅ Downloaded {len(files_to_process)} files from Google Drive")
-        
+            
     elif input_method == "Upload Files Manually":
         if uploaded_files:
             files_to_process = uploaded_files
@@ -246,8 +292,7 @@ with tab2:
             st.warning("⚠️ Please upload files to continue")
             st.stop()
 
-    # Process all files
-    # Process all files
+    # Process all files (rest of your code stays the same from here)
     if files_to_process:
         st.info(f"🔄 Processing {len(files_to_process)} file(s)...")
         

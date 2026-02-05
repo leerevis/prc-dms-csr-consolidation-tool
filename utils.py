@@ -102,3 +102,72 @@ def fuzzy_match_activity(activity_name, mapping_df, threshold=0.90):
             best_match = mapped_activity
     
     return best_match
+
+def detect_google_link_type(url):
+    """
+    Detect if a Google URL is a Drive folder or a Google Sheet
+    
+    Args:
+        url: Google Drive or Google Sheets URL
+        
+    Returns: 
+        'folder' if Drive folder
+        'sheet' if Google Sheets
+        None if neither
+    """
+    if 'drive.google.com/drive/folders/' in url:
+        return 'folder'
+    elif 'docs.google.com/spreadsheets/d/' in url:
+        return 'sheet'
+    else:
+        return None
+
+
+def extract_sheet_id(url):
+    """
+    Extract Google Sheet ID from URL
+    
+    Args:
+        url: Google Sheets URL
+        
+    Returns: Sheet ID string or None
+    """
+    import re
+    match = re.search(r'/spreadsheets/d/([a-zA-Z0-9-_]+)', url)
+    if match:
+        return match.group(1)
+    return None
+
+
+def read_google_sheet(sheet_id, credentials_dict, sheet_name='Chapter Relief', header_row=9):
+    """
+    Read a Google Sheet directly using gspread API
+    
+    Args:
+        sheet_id: Google Sheet ID
+        credentials_dict: Service account credentials
+        sheet_name: Name of the worksheet to read (default: 'Chapter Relief')
+        header_row: Row number containing headers (1-indexed, default: 9)
+        
+    Returns: pandas DataFrame
+    """
+    from google.oauth2.service_account import Credentials
+    import gspread
+    import pandas as pd
+    
+    SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+    creds = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
+    sheets_client = gspread.authorize(creds)
+    
+    # Open the sheet
+    spreadsheet = sheets_client.open_by_key(sheet_id)
+    worksheet = spreadsheet.worksheet(sheet_name)
+    
+    # Get all data
+    data = worksheet.get_all_values()
+    
+    # Convert to DataFrame, using header_row (convert to 0-indexed)
+    header_idx = header_row - 1
+    df = pd.DataFrame(data[header_idx+1:], columns=data[header_idx])
+    
+    return df
