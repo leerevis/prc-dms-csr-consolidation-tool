@@ -267,7 +267,7 @@ with tab2:
                     # Transform based on selected format
                     if output_format == "DMS 5W":
                         output_df = transform_to_output_schema(processed_df)
-                    elif output_format == "OpCen DSR Daily Asssitance":
+                    elif output_format == "OpCen DSR Daily Assitance":
                         output_df = transform_to_opcen_format(processed_df)
                     all_outputs.append(output_df)
                     st.write(f"✅ Transformed to {len(output_df)} output rows")

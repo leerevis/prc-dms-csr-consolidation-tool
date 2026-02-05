@@ -20,6 +20,10 @@ def process_single_file(file, mapping_df, sheet_name, header_row, static_columns
             skiprows=header_row-1,
             dtype=str
         )
+        
+        # STANDARDIZE COLUMN NAMES - remove extra spaces, strip whitespace
+        df.columns = df.columns.str.strip().str.replace(r'\s+', ' ', regex=True)
+        
     except ValueError as e:
         # Sheet name not found
         if "Worksheet named" in str(e):
@@ -74,5 +78,3 @@ def process_single_file(file, mapping_df, sheet_name, header_row, static_columns
         return None
 
     return melted_df
-    
-    return mapped_df

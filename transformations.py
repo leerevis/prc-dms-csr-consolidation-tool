@@ -47,14 +47,19 @@ def transform_to_output_schema(df):
 
     # Static values
     output_df['Organisation'] = 'Philippine Red Cross'
-    output_df['Implementing Partner/Supported By'] = output_df.get('Relief Donor', None)
+    # Handle both single and double space variations
+    output_df['Implementing Partner/Supported By'] = output_df.get('Relief  Donor', output_df.get('Relief Donor', None))
     output_df['Phase'] = None
     
     # Mapping table columns
     output_df['Sector/Cluster'] = output_df['Sector']
     output_df['Sub Sector'] = output_df.get('Sub - Sector', output_df.get('Sub Sector', None))
     output_df['Activity'] = output_df.get('Activity', None)
-    output_df['Materials/Service Provided'] = output_df.get('Assistance? Materials/service', None)
+
+    # Only use mapping table value for MAPPED rows (don't overwrite unmapped)
+    mapped_mask = ~unmapped_mask  # Inverse of unmapped
+    output_df.loc[mapped_mask, 'Materials/Service Provided'] = output_df.loc[mapped_mask, 'Assistance? Materials/service']
+
     output_df['Unit'] = output_df.get('Unit', None)
     output_df['# of Beneficiaries Served'] = output_df.get('# of beneficiaries served', None)
     output_df['Primary Beneficiary Served'] = output_df.get('Beneficiary Served', None)
