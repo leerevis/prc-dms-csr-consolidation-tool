@@ -262,11 +262,20 @@ with tab2:
                     def read(self, size=-1):
                         return self.buffer.read(size)
                         
-                    def seek(self, pos, whence=0):  # ← Add whence parameter with default 0
+                    def seek(self, pos, whence=0):
                         return self.buffer.seek(pos, whence)
                     
-                    def tell(self):  # ← Add this
+                    def tell(self):
                         return self.buffer.tell()
+                    
+                    def seekable(self):  # ← Add this
+                        return True
+                    
+                    def readable(self):  # ← And this while we're at it
+                        return True
+                    
+                    def writable(self):  # ← And this
+                        return False
                     
                 memory_file = MemoryFile(buffer, "GoogleSheet.xlsx")
                 files_to_process = [memory_file]
@@ -303,11 +312,20 @@ with tab2:
                         def read(self, size=-1):
                             return self.buffer.read(size)
                             
-                        def seek(self, pos, whence=0):  # ← Add whence parameter with default 0
+                        def seek(self, pos, whence=0):
                             return self.buffer.seek(pos, whence)
                         
-                        def tell(self):  # ← Add this
+                        def tell(self):
                             return self.buffer.tell()
+                        
+                        def seekable(self):  # ← Add this
+                            return True
+                        
+                        def readable(self):  # ← And this while we're at it
+                            return True
+                        
+                        def writable(self):  # ← And this
+                            return False
                     
                     memory_file = MemoryFile(file_buffer, "DriveExcel.xlsx")
                     files_to_process = [memory_file]
