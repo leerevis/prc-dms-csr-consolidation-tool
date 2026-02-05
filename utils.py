@@ -159,15 +159,31 @@ def read_google_sheet(sheet_id, credentials_dict, sheet_name='Chapter Relief', h
     creds = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
     sheets_client = gspread.authorize(creds)
     
-    # Open the sheet
-    spreadsheet = sheets_client.open_by_key(sheet_id)
-    worksheet = spreadsheet.worksheet(sheet_name)
-    
-    # Get all data
-    data = worksheet.get_all_values()
-    
-    # Convert to DataFrame, using header_row (convert to 0-indexed)
-    header_idx = header_row - 1
-    df = pd.DataFrame(data[header_idx+1:], columns=data[header_idx])
-    
-    return df
+    try:
+        # Open the spreadsheet
+        spreadsheet = sheets_client.open_by_key(sheet_id)
+        
+        # Try to get the worksheet by name
+        try:
+            worksheet = spreadsheet.worksheet(sheet_name)
+        except gspread.exceptions.WorksheetNotFound:
+            # If sheet name not found, list available sheets
+            available_sheets = [ws.title for ws in spreadsheet.worksheets()]
+            raise ValueError(f"Sheet '{sheet_name}' not found. Available sheets: {available_sheets}")
+        
+        # Get all data as list of lists
+        data = worksheet.get_all_values()
+        
+        if not data or len(data) < header_row:
+            raise ValueError(f"Sheet has insufficient rows (found {len(data)}, need at least {header_row})")
+        
+        # Convert to DataFrame, using header_row (convert to 0-indexed)
+        header_idx = header_row - 1
+        df = pd.DataFrame(data[header_idx+1:], columns=data[header_idx])
+        
+        return df
+        
+    except gspread.exceptions.APIError as e:
+        raise Exception(f"Google Sheets API Error: {str(e)}. Check that the sheet is shared and accessible.")
+    except Exception as e:
+        raise
