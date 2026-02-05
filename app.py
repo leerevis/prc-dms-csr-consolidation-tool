@@ -259,11 +259,11 @@ with tab2:
                         self.buffer = buffer
                         self.name = name
                         
-                    def read(self, size=-1):  # ← Add size parameter with default -1
+                    def read(self, size=-1):
                         return self.buffer.read(size)
                         
-                    def seek(self, pos):
-                        return self.buffer.seek(pos)
+                    def seek(self, pos, whence=0):  # ← Add whence parameter with default 0
+                        return self.buffer.seek(pos, whence)
                     
                 memory_file = MemoryFile(buffer, "GoogleSheet.xlsx")
                 files_to_process = [memory_file]
@@ -297,11 +297,11 @@ with tab2:
                             self.buffer = buffer
                             self.name = name
                             
-                        def read(self, size=-1):  # ← Add size parameter with default -1
+                        def read(self, size=-1):
                             return self.buffer.read(size)
                             
-                        def seek(self, pos):
-                            return self.buffer.seek(pos)
+                        def seek(self, pos, whence=0):  # ← Add whence parameter with default 0
+                            return self.buffer.seek(pos, whence)
                     
                     memory_file = MemoryFile(file_buffer, "DriveExcel.xlsx")
                     files_to_process = [memory_file]
