@@ -481,8 +481,24 @@ with tab2:
         
         # Concatenate all outputs
         final_df = pd.concat(all_outputs, ignore_index=True)
-        
+
         st.success(f"✅ Successfully processed {len(files_to_process)} file(s)!")
+
+        # Upload to BigQuery
+        st.info("📤 Uploading to BigQuery data lake...")
+        try:
+            from bigquery_utils import upload_to_bigquery
+            
+            total_affected, new_count, updated_count = upload_to_bigquery(
+                final_df, 
+                credentials_dict, 
+                uploaded_by="Streamlit User"  # TODO: Add user tracking
+            )
+            
+            st.success(f"✅ BigQuery upload complete: {new_count} new records, {updated_count} updated records")
+        except Exception as e:
+            st.warning(f"⚠️ BigQuery upload failed: {str(e)}")
+            st.write("Data is still available for download below.")
         
     # Summary statistics
         st.subheader("📊 Summary")
