@@ -244,42 +244,74 @@ with tab2:
                 st.stop()
             
             try:
-                # Read the Google Sheet as a DataFrame
+                # First, try to read as native Google Sheet
                 df = read_google_sheet(sheet_id, credentials_dict, sheet_name, header_row)
                 
-                # Convert DataFrame to file-like object so it works with process_single_file
-                # We'll create a temporary Excel file in memory
+                # Convert DataFrame to file-like object
                 import io
                 buffer = io.BytesIO()
                 with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
                     df.to_excel(writer, sheet_name=sheet_name, index=False, header=False, startrow=header_row-1)
                 buffer.seek(0)
                 
-                # Create a file-like object with a name attribute
                 class MemoryFile:
                     def __init__(self, buffer, name):
                         self.buffer = buffer
                         self.name = name
-                        
                     def read(self):
                         return self.buffer.read()
-                        
                     def seek(self, pos):
                         return self.buffer.seek(pos)
                 
                 memory_file = MemoryFile(buffer, "GoogleSheet.xlsx")
                 files_to_process = [memory_file]
-                
                 st.success(f"✅ Successfully loaded Google Sheet")
                 
-            except Exception as e:
-                st.error(f"❌ Error reading Google Sheet: {str(e)}")
-                st.write("**Troubleshooting:**")
-                st.write("1. Ensure the sheet is shared as 'Anyone with the link can view'")
-                st.write(f"2. Verify the sheet name is '{sheet_name}'")
-                st.write(f"3. Verify headers are on row {header_row}")
-                st.exception(e)
-                st.stop()
+            except Exception as sheets_error:
+                # If Sheets API fails, try downloading as Excel file via Drive API
+                st.info("📥 Not a native Google Sheet - downloading as Excel file...")
+                try:
+                    from googleapiclient.discovery import build
+                    from googleapiclient.http import MediaIoBaseDownload
+                    from google.oauth2.service_account import Credentials
+                    
+                    SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+                    creds = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
+                    service = build('drive', 'v3', credentials=creds)
+                    
+                    # Download the file
+                    request = service.files().get_media(fileId=sheet_id)
+                    file_buffer = io.BytesIO()
+                    downloader = MediaIoBaseDownload(file_buffer, request)
+                    
+                    done = False
+                    while not done:
+                        status, done = downloader.next_chunk()
+                    
+                    file_buffer.seek(0)
+                    
+                    class MemoryFile:
+                        def __init__(self, buffer, name):
+                            self.buffer = buffer
+                            self.name = name
+                        def read(self):
+                            return self.buffer.read()
+                        def seek(self, pos):
+                            return self.buffer.seek(pos)
+                    
+                    memory_file = MemoryFile(file_buffer, "DriveExcel.xlsx")
+                    files_to_process = [memory_file]
+                    st.success(f"✅ Successfully downloaded Excel file from Drive")
+                    
+                except Exception as drive_error:
+                    st.error(f"❌ Could not read as Google Sheet or download as Excel")
+                    st.write("**Sheets API Error:**", str(sheets_error))
+                    st.write("**Drive API Error:**", str(drive_error))
+                    st.write("**Troubleshooting:**")
+                    st.write("1. Ensure the file is shared as 'Anyone with the link can view'")
+                    st.write(f"2. Verify the sheet name is '{sheet_name}' (if Google Sheet)")
+                    st.write(f"3. Verify headers are on row {header_row}")
+                    st.stop()
         
         else:
             st.error("❌ Invalid Google link. Please provide a Google Drive folder or Google Sheets URL.")
