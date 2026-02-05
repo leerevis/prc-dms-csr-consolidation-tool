@@ -265,6 +265,9 @@ with tab2:
                     def seek(self, pos, whence=0):  # ← Add whence parameter with default 0
                         return self.buffer.seek(pos, whence)
                     
+                    def tell(self):  # ← Add this
+                        return self.buffer.tell()
+                    
                 memory_file = MemoryFile(buffer, "GoogleSheet.xlsx")
                 files_to_process = [memory_file]
                 st.success(f"✅ Successfully loaded Google Sheet")
@@ -302,6 +305,9 @@ with tab2:
                             
                         def seek(self, pos, whence=0):  # ← Add whence parameter with default 0
                             return self.buffer.seek(pos, whence)
+                        
+                        def tell(self):  # ← Add this
+                            return self.buffer.tell()
                     
                     memory_file = MemoryFile(file_buffer, "DriveExcel.xlsx")
                     files_to_process = [memory_file]
