@@ -456,10 +456,12 @@ with tab2:
                 melted_df['Source_Filename'] = file.name
                 melted_df['Source_Row_Number'] = melted_df.index + header_row + 1
 
-                # Clean
+                # Clean - convert to numeric (blanks become NaN)
+                melted_df['Count'] = pd.to_numeric(melted_df['Count'], errors='coerce')
+
+                # Remove NaN and zeros
                 melted_df = melted_df[melted_df['Count'].notna()]
-                melted_df = melted_df[melted_df['Count'] != '0']
-                melted_df = melted_df[melted_df['Count'] != 0]
+                melted_df = melted_df[melted_df['Count'] > 0]
                 
                 if not melted_df.empty:
                     # Fuzzy match and merge

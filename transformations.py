@@ -153,6 +153,10 @@ def transform_to_output_schema(df):
     output_df['Count'] = pd.to_numeric(output_df['Count'], errors='coerce').fillna(0)
     output_df['ACTIVITY COSTING'] = pd.to_numeric(output_df.get('COST', 0), errors='coerce').fillna(0)
     output_df['Total Cost'] = output_df['ACTIVITY COSTING'] * output_df['Count']
+    output_df['QTY'] = output_df['Count']
+
+    # Final safety filter - remove any zeros that shouldn't be there
+    output_df = output_df[output_df['Count'] > 0]
     
     # Select and order final columns
     final_columns = [
@@ -162,7 +166,8 @@ def transform_to_output_schema(df):
         "DSR Intervention Team", "Count", "Unit", "# of Beneficiaries Served",
         "Primary Beneficiary Served", "DSR Unit", "Status", "Start Date", "End Date",
         "Source", "Signature", "Weather System", "Remarks", "Date Modified",
-        "ACTIVITY COSTING", "Total Cost", "Month", "Validation Status"
+        "ACTIVITY COSTING", "Total Cost", "Month", "Validation Status",
+        "Source_Filename", "Source_Row_Number"  # ← ADD THESE
     ]
     
     # Only include columns that exist
@@ -231,4 +236,13 @@ def transform_to_opcen_format(df):
         'LATITUDE', 'LONGITUDE', 'PHOTO LINK', 'BENEFICIARIES'
     ]
     
+    # Calculate beneficiaries using the same logic as DMS 5W
+    output_df['BENEFICIARIES'] = output_df.apply(calculate_beneficiaries, axis=1)
+
+    # Final safety filter - remove any zeros that shouldn't be there
+    output_df = output_df[output_df['QTY'] > 0]
+
+    # Select final columns in correct order
+    opcen_columns = [...]
+
     return output_df[opcen_columns]
