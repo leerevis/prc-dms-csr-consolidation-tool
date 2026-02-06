@@ -332,17 +332,23 @@ with tab2:
                 st.stop()
             
             try:
-                # Read the Google Sheet - it's already processed with correct headers
+                # Read and process Google Sheet directly
                 df = read_google_sheet(sheet_id, credentials_dict, sheet_name, header_row)
                 
-                # Standardize column names (same as in processing.py)
+                # Standardize column names
                 df.columns = df.columns.str.strip().str.replace(r'\s+', ' ', regex=True)
                 
-                # Store as a pre-processed DataFrame instead of converting to Excel
-                # We'll handle this differently in the processing loop
-                files_to_process = [{'type': 'dataframe', 'data': df, 'name': 'GoogleSheet'}]
+                # Process directly without converting to Excel
+                from processing import process_single_file
                 
-                st.success(f"✅ Successfully loaded Google Sheet")
+                # Create a simple wrapper that skips the pd.read_excel step
+                class GoogleSheetWrapper:
+                    def __init__(self, dataframe, name):
+                        self.df = dataframe
+                        self.name = name
+                
+                files_to_process = [GoogleSheetWrapper(df, "GoogleSheet")]
+                st.success(f"✅ Successfully loaded Google Sheet with {len(df)} rows")
                 
             except Exception as sheets_error:
                 # If Sheets API fails, try downloading as Excel file via Drive API
@@ -426,33 +432,61 @@ with tab2:
         all_outputs = []
         progress_bar = st.progress(0)
         
-        for idx, file in enumerate(files_to_process):
-            file_name = file.name if hasattr(file, 'name') else 'Unknown file'
-            st.write(f"**Processing file:** {file_name}")
-            
-            try:
-                # Process the file
-                processed_df = process_single_file(file, mapping_df, sheet_name, header_row, STATIC_COLUMNS)
+    for idx, file in enumerate(files_to_process):
+        try:
+            if isinstance(file, GoogleSheetWrapper):
+                st.write(f"**Processing:** {file.name}")
+                df = file.df
                 
-                if processed_df is not None:
-                    st.write(f"✅ Processed {len(processed_df)} rows")
-                    # Transform to output schema
-                    # Transform based on selected format
-                    if output_format == "DMS 5W":
-                        output_df = transform_to_output_schema(processed_df)
-                    elif output_format == "OpCen DSR Daily Assistance":
-                        output_df = transform_to_opcen_format(processed_df)
-                    all_outputs.append(output_df)
-                    st.write(f"✅ Transformed to {len(output_df)} output rows")
+                # Identify static vs activity columns
+                activity_cols = [col for col in df.columns if not is_static_column(col, STATIC_COLUMNS)]
+                existing_static_cols = [col for col in df.columns if is_static_column(col, STATIC_COLUMNS)]
+                
+                # Unpivot
+                melted_df = pd.melt(df, id_vars=existing_static_cols, value_vars=activity_cols, 
+                                var_name='RawItemName', value_name='Count')
+                
+                # Clean
+                melted_df = melted_df[melted_df['Count'].notna()]
+                melted_df = melted_df[melted_df['Count'] != '0']
+                melted_df = melted_df[melted_df['Count'] != 0]
+                
+                if not melted_df.empty:
+                    # Fuzzy match and merge
+                    melted_df['MatchedActivity'] = melted_df['RawItemName'].apply(
+                        lambda x: fuzzy_match_activity(x, mapping_df) or x
+                    )
+                    processed_df = melted_df.merge(mapping_df, left_on='MatchedActivity', 
+                                                right_on='RawItemName', how='left')
                 else:
-                    st.warning(f"⚠️ No valid data found in {file.name}")
+                    processed_df = None
             
-            except Exception as e:
-                st.error(f"❌ Error processing {file_name}: {str(e)}")
-                st.exception(e)
+            else:
+                # Regular file processing
+                st.write(f"**Processing file:** {file.name}")
+                processed_df = process_single_file(file, mapping_df, sheet_name, header_row, STATIC_COLUMNS)
             
-            # Update progress
-            progress_bar.progress((idx + 1) / len(files_to_process))
+            # Transform the processed data (common for both paths)
+            if processed_df is not None:
+                st.write(f"✅ Processed {len(processed_df)} rows")
+                
+                if output_format == "DMS 5W":
+                    output_df = transform_to_output_schema(processed_df)
+                elif output_format == "OpCen DSR Daily Assistance":
+                    output_df = transform_to_opcen_format(processed_df)
+                
+                all_outputs.append(output_df)
+                st.write(f"✅ Transformed to {len(output_df)} output rows")
+            else:
+                st.warning(f"⚠️ No valid data found in file")
+        
+        except Exception as e:
+            file_name = file.name if hasattr(file, 'name') else 'Unknown file'
+            st.error(f"❌ Error processing {file_name}: {str(e)}")
+            st.exception(e)
+        
+        # Update progress
+        progress_bar.progress((idx + 1) / len(files_to_process))
         
         # Check if we got any valid data
         if not all_outputs:

@@ -183,12 +183,12 @@ def read_google_sheet(sheet_id, credentials_dict, sheet_name='Chapter Relief', h
         data_rows = data[header_idx + 1:]  # Get data starting from row 10
 
         # DEBUG - write to file
-        with open('/tmp/debug_fuzzy.txt', 'a') as f:
-            f.write(f"\n=== GOOGLE SHEET READ DEBUG ===\n")
-            f.write(f"Header row (1-indexed): {header_row}\n")
-            f.write(f"Header idx (0-indexed): {header_idx}\n")
-            f.write(f"Headers from data[{header_idx}]: {headers[:5]}\n")
-            f.write(f"First data row: {data_rows[0][:5] if data_rows else 'No data'}\n")
+        #with open('/tmp/debug_fuzzy.txt', 'a') as f:
+        #    f.write(f"\n=== GOOGLE SHEET READ DEBUG ===\n")
+        #    f.write(f"Header row (1-indexed): {header_row}\n")
+        #    f.write(f"Header idx (0-indexed): {header_idx}\n")
+        #    f.write(f"Headers from data[{header_idx}]: {headers[:5]}\n")
+        #    f.write(f"First data row: {data_rows[0][:5] if data_rows else 'No data'}\n")
 
         df = pd.DataFrame(data_rows, columns=headers)
         
