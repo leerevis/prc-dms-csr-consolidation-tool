@@ -339,7 +339,7 @@ with tab2:
                 import io
                 buffer = io.BytesIO()
                 with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                    df.to_excel(writer, sheet_name=sheet_name, index=False, header=False, startrow=header_row-1)
+                    df.to_excel(writer, sheet_name=sheet_name, index=False)
                 buffer.seek(0)
                 
                 class MemoryFile:
@@ -444,9 +444,9 @@ with tab2:
     if files_to_process:
         st.info(f"🔄 Processing {len(files_to_process)} file(s)...")
 
-        import os
-        if os.path.exists('/tmp/debug_fuzzy.txt'):
-            os.remove('/tmp/debug_fuzzy.txt')
+        #import os
+        #if os.path.exists('/tmp/debug_fuzzy.txt'):
+        #    os.remove('/tmp/debug_fuzzy.txt')
         
         all_outputs = []
         progress_bar = st.progress(0)
@@ -511,17 +511,17 @@ with tab2:
         st.metric("Total Records", len(final_df))
 
         # ADD THIS HERE - Debug file download
-        import os
-        if os.path.exists('/tmp/debug_fuzzy.txt'):
-            with open('/tmp/debug_fuzzy.txt', 'r') as f:
-                debug_content = f.read()
+        #import os
+        #if os.path.exists('/tmp/debug_fuzzy.txt'):
+        #    with open('/tmp/debug_fuzzy.txt', 'r') as f:
+        #        debug_content = f.read()
             
-            st.download_button(
-                label="📥 Download Debug Log",
-                data=debug_content,
-                file_name="fuzzy_debug.txt",
-                mime="text/plain"
-            )
+        #    st.download_button(
+        #        label="📥 Download Debug Log",
+        #        data=debug_content,
+        #        file_name="fuzzy_debug.txt",
+        #        mime="text/plain"
+        #    )
         
         # Show preview
         st.subheader("📋 Final Output Preview")
