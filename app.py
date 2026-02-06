@@ -448,7 +448,7 @@ with tab2:
                     st.warning(f"⚠️ No valid data found in {file.name}")
             
             except Exception as e:
-                st.error(f"❌ Error processing {file.name}: {str(e)}")
+                st.error(f"❌ Error processing {file_name}: {str(e)}")
                 st.exception(e)
             
             # Update progress
