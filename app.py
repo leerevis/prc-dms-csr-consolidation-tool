@@ -443,6 +443,10 @@ with tab2:
     # Process all files (rest of your code stays the same from here)
     if files_to_process:
         st.info(f"🔄 Processing {len(files_to_process)} file(s)...")
+
+        import os
+        if os.path.exists('/tmp/debug_fuzzy.txt'):
+            os.remove('/tmp/debug_fuzzy.txt')
         
         all_outputs = []
         progress_bar = st.progress(0)
@@ -501,8 +505,22 @@ with tab2:
             st.write("Data is still available for download below.")
         
     # Summary statistics
+        # Summary statistics
         st.subheader("📊 Summary")
         st.metric("Total Records", len(final_df))
+
+        # ADD THIS HERE - Debug file download
+        import os
+        if os.path.exists('/tmp/debug_fuzzy.txt'):
+            with open('/tmp/debug_fuzzy.txt', 'r') as f:
+                debug_content = f.read()
+            
+            st.download_button(
+                label="📥 Download Debug Log",
+                data=debug_content,
+                file_name="fuzzy_debug.txt",
+                mime="text/plain"
+            )
         
         # Show preview
         st.subheader("📋 Final Output Preview")

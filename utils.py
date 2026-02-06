@@ -64,19 +64,21 @@ def is_static_column(column_name, static_columns, threshold=90):
     """
     from thefuzz import fuzz
     
-    # DEBUG
-    best_match = max(static_columns, key=lambda x: fuzz.ratio(column_name.lower(), x.lower()))
-    best_score = fuzz.ratio(column_name.lower(), best_match.lower())
-    
-    if best_score < threshold:
-        print(f"DEBUG: '{column_name}' -> best match '{best_match}' = {best_score}% (REJECTED)")
+    # DEBUG - write to file
+    with open('/tmp/debug_fuzzy.txt', 'a') as f:
+        best_match = max(static_columns, key=lambda x: fuzz.ratio(column_name.lower(), x.lower()))
+        best_score = fuzz.ratio(column_name.lower(), best_match.lower())
+        
+        if best_score < threshold:
+            f.write(f"REJECTED: '{column_name}' -> best match '{best_match}' = {best_score}%\n")
+        else:
+            f.write(f"MATCHED: '{column_name}' -> '{best_match}' = {best_score}%\n")
     
     for static_col in static_columns:
         similarity = fuzz.ratio(column_name.lower(), static_col.lower())
         if similarity >= threshold:
             return True
     return False
-
 def fuzzy_match_activity(activity_name, mapping_df, threshold=0.90):
     """
     Try to find a matching activity using fuzzy matching
