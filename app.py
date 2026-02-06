@@ -542,25 +542,16 @@ with tab2:
         # Show preview
         st.subheader("📋 Final Output Preview")
         st.dataframe(final_df.head(20))
-        
-        # Download section
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.markdown("<h3 style='text-align: center;'>📥 Download</h3>", unsafe_allow_html=True)
-        
-        # Create Excel fileF
-        # Create Excel file with multiple sheets
+
+        # Create Excel file
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            # Sheet 1: Successfully mapped activities
             final_df.to_excel(writer, index=False, sheet_name='Mapped Activities')
-            
-            # Sheet 2: Unmapped activities (if any exist)
-            # We need to collect these during processing...
-
         output.seek(0)
-        
-        # Download button
+
+        # Download section
+        st.markdown("<h3 style='text-align: center;'>📥 Download</h3>", unsafe_allow_html=True)
+
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             st.download_button(
