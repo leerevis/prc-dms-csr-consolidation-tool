@@ -494,71 +494,71 @@ with tab2:
         # Update progress
         progress_bar.progress((idx + 1) / len(files_to_process))
         
-        # Check if we got any valid data
-        if not all_outputs:
-            st.error("❌ No valid data found in the uploaded files")
-            st.stop()
-        
-        # Concatenate all outputs
-        final_df = pd.concat(all_outputs, ignore_index=True)
+    # Check if we got any valid data
+    if not all_outputs:
+        st.error("❌ No valid data found in the uploaded files")
+        st.stop()
+    
+    # Concatenate all outputs
+    final_df = pd.concat(all_outputs, ignore_index=True)
 
-        st.success(f"✅ Successfully processed {len(files_to_process)} file(s)!")
+    st.success(f"✅ Successfully processed {len(files_to_process)} file(s)!")
 
-        # Upload to BigQuery
-        #st.info("📤 Uploading to BigQuery data lake...")
+    # Upload to BigQuery
+    #st.info("📤 Uploading to BigQuery data lake...")
+    
+    #try:
+    #from bigquery_utils import upload_to_bigquery
         
-        #try:
-        #from bigquery_utils import upload_to_bigquery
-            
-        #    total_affected, new_count, updated_count = upload_to_bigquery(
-         #       final_df, 
-          #      credentials_dict, 
-           #     uploaded_by="Streamlit User"  # TODO: Add user tracking
-            #)
-            
-            #st.success(f"✅ BigQuery upload complete: {new_count} new records, {updated_count} updated records")
-        #except Exception as e:
-         #   st.warning(f"⚠️ BigQuery upload failed: {str(e)}")
-          #  st.write("Data is still available for download below.")
+    #    total_affected, new_count, updated_count = upload_to_bigquery(
+        #       final_df, 
+        #      credentials_dict, 
+        #     uploaded_by="Streamlit User"  # TODO: Add user tracking
+        #)
         
+        #st.success(f"✅ BigQuery upload complete: {new_count} new records, {updated_count} updated records")
+    #except Exception as e:
+        #   st.warning(f"⚠️ BigQuery upload failed: {str(e)}")
+        #  st.write("Data is still available for download below.")
+    
+# Summary statistics
     # Summary statistics
-        # Summary statistics
-        st.subheader("📊 Summary")
-        st.metric("Total Records", len(final_df))
+    st.subheader("📊 Summary")
+    st.metric("Total Records", len(final_df))
 
-        # ADD THIS HERE - Debug file download
-        #import os
-        #if os.path.exists('/tmp/debug_fuzzy.txt'):
-        #    with open('/tmp/debug_fuzzy.txt', 'r') as f:
-        #        debug_content = f.read()
-            
-        #    st.download_button(
-        #        label="📥 Download Debug Log",
-        #        data=debug_content,
-        #        file_name="fuzzy_debug.txt",
-        #        mime="text/plain"
-        #    )
+    # ADD THIS HERE - Debug file download
+    #import os
+    #if os.path.exists('/tmp/debug_fuzzy.txt'):
+    #    with open('/tmp/debug_fuzzy.txt', 'r') as f:
+    #        debug_content = f.read()
         
-        # Show preview
-        st.subheader("📋 Final Output Preview")
-        st.dataframe(final_df.head(20))
+    #    st.download_button(
+    #        label="📥 Download Debug Log",
+    #        data=debug_content,
+    #        file_name="fuzzy_debug.txt",
+    #        mime="text/plain"
+    #    )
+    
+    # Show preview
+    st.subheader("📋 Final Output Preview")
+    st.dataframe(final_df.head(20))
 
-        # Create Excel file
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            final_df.to_excel(writer, index=False, sheet_name='Mapped Activities')
-        output.seek(0)
+    # Create Excel file
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        final_df.to_excel(writer, index=False, sheet_name='Mapped Activities')
+    output.seek(0)
 
-        # Download section
-        st.markdown("<h3 style='text-align: center;'>📥 Download</h3>", unsafe_allow_html=True)
+    # Download section
+    st.markdown("<h3 style='text-align: center;'>📥 Download</h3>", unsafe_allow_html=True)
 
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.download_button(
-                label="📥 Download Consolidated Report",
-                data=output,
-                file_name=f"DSR_Consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                type="primary",
-                use_container_width=True
-            )
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.download_button(
+            label="📥 Download Consolidated Report",
+            data=output,
+            file_name=f"DSR_Consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            type="primary",
+            use_container_width=True
+        )
