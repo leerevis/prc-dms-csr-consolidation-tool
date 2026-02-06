@@ -50,11 +50,16 @@ def process_single_file(file, mapping_df, sheet_name, header_row, static_columns
         var_name='RawItemName',
         value_name='Count'
     )
+
+    melted_df['Source_Filename'] = file.name if hasattr(file, 'name') else 'Unknown'
+    melted_df['Source_Row_Number'] = melted_df.index + header_row + 1  # Adjust for header row
     
-    # Clean data - remove null and zero counts
+    # Clean - convert to numeric (blanks become NaN)
+    melted_df['Count'] = pd.to_numeric(melted_df['Count'], errors='coerce')
+
+    # Remove NaN and zeros
     melted_df = melted_df[melted_df['Count'].notna()]
-    melted_df = melted_df[melted_df['Count'] != '0']
-    melted_df = melted_df[melted_df['Count'] != 0]
+    melted_df = melted_df[melted_df['Count'] > 0]
     
     if melted_df.empty:
         return None

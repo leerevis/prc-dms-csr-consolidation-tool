@@ -452,6 +452,10 @@ with tab2:
                 melted_df = pd.melt(df, id_vars=existing_static_cols, value_vars=activity_cols, 
                                 var_name='RawItemName', value_name='Count')
                 
+                # Add source tracking
+                melted_df['Source_Filename'] = file.name
+                melted_df['Source_Row_Number'] = melted_df.index + header_row + 1
+
                 # Clean
                 melted_df = melted_df[melted_df['Count'].notna()]
                 melted_df = melted_df[melted_df['Count'] != '0']
