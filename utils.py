@@ -79,6 +79,7 @@ def is_static_column(column_name, static_columns, threshold=90):
         if similarity >= threshold:
             return True
     return False
+
 def fuzzy_match_activity(activity_name, mapping_df, threshold=0.90):
     """
     Try to find a matching activity using fuzzy matching
@@ -161,14 +162,11 @@ def read_google_sheet(sheet_id, credentials_dict, sheet_name='Chapter Relief', h
     sheets_client = gspread.authorize(creds)
     
     try:
-        # Open the spreadsheet
         spreadsheet = sheets_client.open_by_key(sheet_id)
         
-        # Try to get the worksheet by name
         try:
             worksheet = spreadsheet.worksheet(sheet_name)
         except gspread.exceptions.WorksheetNotFound:
-            # If sheet name not found, list available sheets
             available_sheets = [ws.title for ws in spreadsheet.worksheets()]
             raise ValueError(f"Sheet '{sheet_name}' not found. Available sheets: {available_sheets}")
         
@@ -178,9 +176,21 @@ def read_google_sheet(sheet_id, credentials_dict, sheet_name='Chapter Relief', h
         if not data or len(data) < header_row:
             raise ValueError(f"Sheet has insufficient rows (found {len(data)}, need at least {header_row})")
         
-        # Convert to DataFrame, using header_row (convert to 0-indexed)
-        header_idx = header_row - 1
-        df = pd.DataFrame(data[header_idx+1:], columns=data[header_idx])
+        # IMPORTANT: gspread uses 1-indexed rows, but Python lists are 0-indexed
+        # So row 9 in Google Sheets = data[8] in Python
+        header_idx = header_row - 1  # Row 9 → index 8
+        headers = data[header_idx]   # Get headers from row 9
+        data_rows = data[header_idx + 1:]  # Get data starting from row 10
+
+        # DEBUG - write to file
+        with open('/tmp/debug_fuzzy.txt', 'a') as f:
+            f.write(f"\n=== GOOGLE SHEET READ DEBUG ===\n")
+            f.write(f"Header row (1-indexed): {header_row}\n")
+            f.write(f"Header idx (0-indexed): {header_idx}\n")
+            f.write(f"Headers from data[{header_idx}]: {headers[:5]}\n")
+            f.write(f"First data row: {data_rows[0][:5] if data_rows else 'No data'}\n")
+
+        df = pd.DataFrame(data_rows, columns=headers)
         
         return df
         
