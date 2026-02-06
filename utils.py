@@ -3,6 +3,7 @@ import re
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+from thefuzz import fuzz
 
 def extract_folder_id(url):
     """Extract folder ID from Google Drive URL"""
@@ -57,25 +58,23 @@ def download_files_from_drive(folder_id, credentials_dict):
 
 from difflib import SequenceMatcher
 
-def is_static_column(column_name, static_columns, threshold=0.85):
+def is_static_column(column_name, static_columns, threshold=90):
     """
-    Check if a column is static using fuzzy matching
-    threshold: 0.0 to 1.0, where 1.0 is exact match
+    Check if a column name matches any static column using fuzzy matching.
     """
-    column_clean = column_name.strip().lower()
+    from thefuzz import fuzz
+    
+    # DEBUG
+    best_match = max(static_columns, key=lambda x: fuzz.ratio(column_name.lower(), x.lower()))
+    best_score = fuzz.ratio(column_name.lower(), best_match.lower())
+    
+    if best_score < threshold:
+        print(f"DEBUG: '{column_name}' -> best match '{best_match}' = {best_score}% (REJECTED)")
     
     for static_col in static_columns:
-        static_clean = static_col.strip().lower()
-        
-        # Exact match after cleaning
-        if column_clean == static_clean:
-            return True
-        
-        # Fuzzy match
-        similarity = SequenceMatcher(None, column_clean, static_clean).ratio()
+        similarity = fuzz.ratio(column_name.lower(), static_col.lower())
         if similarity >= threshold:
             return True
-    
     return False
 
 def fuzzy_match_activity(activity_name, mapping_df, threshold=0.90):
