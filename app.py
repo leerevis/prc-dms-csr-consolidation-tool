@@ -332,41 +332,16 @@ with tab2:
                 st.stop()
             
             try:
-                # First, try to read as native Google Sheet
+                # Read the Google Sheet - it's already processed with correct headers
                 df = read_google_sheet(sheet_id, credentials_dict, sheet_name, header_row)
                 
-                # Convert DataFrame to file-like object
-                import io
-                buffer = io.BytesIO()
-                with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                    df.to_excel(writer, sheet_name=sheet_name, index=False)
-                buffer.seek(0)
+                # Standardize column names (same as in processing.py)
+                df.columns = df.columns.str.strip().str.replace(r'\s+', ' ', regex=True)
                 
-                class MemoryFile:
-                    def __init__(self, buffer, name):
-                        self.buffer = buffer
-                        self.name = name
-                        
-                    def read(self, size=-1):
-                        return self.buffer.read(size)
-                        
-                    def seek(self, pos, whence=0):
-                        return self.buffer.seek(pos, whence)
-                    
-                    def tell(self):
-                        return self.buffer.tell()
-                    
-                    def seekable(self):  # ← Add this
-                        return True
-                    
-                    def readable(self):  # ← And this while we're at it
-                        return True
-                    
-                    def writable(self):  # ← And this
-                        return False
-                    
-                memory_file = MemoryFile(buffer, "GoogleSheet.xlsx")
-                files_to_process = [memory_file]
+                # Store as a pre-processed DataFrame instead of converting to Excel
+                # We'll handle this differently in the processing loop
+                files_to_process = [{'type': 'dataframe', 'data': df, 'name': 'GoogleSheet'}]
+                
                 st.success(f"✅ Successfully loaded Google Sheet")
                 
             except Exception as sheets_error:
