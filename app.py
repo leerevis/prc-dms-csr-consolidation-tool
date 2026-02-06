@@ -12,6 +12,12 @@ from utils import extract_folder_id, download_files_from_drive, is_static_column
 from processing import process_single_file
 from transformations import transform_to_output_schema, transform_to_opcen_format
 
+# Create a simple wrapper that skips the pd.read_excel step
+class GoogleSheetWrapper:
+    def __init__(self, dataframe, name):
+        self.df = dataframe
+        self.name = name
+
 import json
 credentials_dict = dict(st.secrets["gcp_service_account"])
 
@@ -342,10 +348,10 @@ with tab2:
                 from processing import process_single_file
                 
                 # Create a simple wrapper that skips the pd.read_excel step
-                class GoogleSheetWrapper:
-                    def __init__(self, dataframe, name):
-                        self.df = dataframe
-                        self.name = name
+                #class GoogleSheetWrapper:
+                #    def __init__(self, dataframe, name):
+                #        self.df = dataframe
+                #        self.name = name
                 
                 files_to_process = [GoogleSheetWrapper(df, "GoogleSheet")]
                 st.success(f"✅ Successfully loaded Google Sheet with {len(df)} rows")
