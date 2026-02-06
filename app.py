@@ -427,7 +427,8 @@ with tab2:
         progress_bar = st.progress(0)
         
         for idx, file in enumerate(files_to_process):
-            st.write(f"**Processing file:** {file.name}")
+            file_name = file.name if hasattr(file, 'name') else 'Unknown file'
+            st.write(f"**Processing file:** {file_name}")
             
             try:
                 # Process the file
