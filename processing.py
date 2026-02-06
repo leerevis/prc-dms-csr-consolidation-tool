@@ -36,11 +36,17 @@ def process_single_file(file, mapping_df, sheet_name, header_row, static_columns
     except Exception as e:
         raise Exception(f"❌ Error reading {file.name}: {str(e)}. File may be corrupted or in wrong format.")
     
-    # Identify activity columns using fuzzy matching
-    activity_cols = [col for col in df.columns if not is_static_column(col, static_columns)]
+    # BEFORE unpivoting, preserve original row number
+    df['_original_row'] = df.index + header_row + 1
+    
+    # Identify activity columns using fuzzy matching (exclude our temp column)
+    activity_cols = [col for col in df.columns if not is_static_column(col, static_columns) and col != '_original_row']
     
     # Get the static columns that actually exist in this file
     existing_static_cols = [col for col in df.columns if is_static_column(col, static_columns)]
+    
+    # Add _original_row to static cols so it survives the unpivot
+    existing_static_cols.append('_original_row')
     
     # Unpivot the activity columns
     melted_df = pd.melt(
@@ -51,8 +57,12 @@ def process_single_file(file, mapping_df, sheet_name, header_row, static_columns
         value_name='Count'
     )
 
+    # Add source tracking using preserved row numbers
     melted_df['Source_Filename'] = file.name if hasattr(file, 'name') else 'Unknown'
-    melted_df['Source_Row_Number'] = melted_df.index + header_row + 1  # Adjust for header row
+    melted_df['Source_Row_Number'] = melted_df['_original_row']
+    
+    # Drop temp column
+    melted_df = melted_df.drop(columns=['_original_row'])
     
     # Clean - convert to numeric (blanks become NaN)
     melted_df['Count'] = pd.to_numeric(melted_df['Count'], errors='coerce')
@@ -78,7 +88,6 @@ def process_single_file(file, mapping_df, sheet_name, header_row, static_columns
     )
     
     # Keep ALL rows, including unmapped ones
-    # Just return the full melted dataframe after mapping
     if melted_df.empty:
         return None
 

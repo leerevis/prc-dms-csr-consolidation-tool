@@ -88,8 +88,11 @@ def transform_to_output_schema(df):
             str(row.get('Sector', '')).strip().upper() == 'NEEDS MAPPING'
         )
         has_beneficiary_error = pd.isna(row.get('# of Beneficiaries Served'))
+        has_duplicate_mapping = row.get('Duplicate_Mapping_Flag') == 'DUPLICATE MAPPING'
         
-        if has_mapping_error and has_beneficiary_error:
+        if has_duplicate_mapping:
+            return 'Check - Duplicate Mapping'
+        elif has_mapping_error and has_beneficiary_error:
             return 'Check'
         elif has_mapping_error:
             return 'Check Mapping'
