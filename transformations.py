@@ -1,12 +1,15 @@
 import pandas as pd
 
-def calculate_beneficiaries(row):
+def calculate_beneficiary_units(row):
+    """
+    Calculate number of beneficiary units (e.g., families, households)
+    Formula: Count / Quantity
+    """
     count = pd.to_numeric(row.get('Count', 0), errors='coerce') or 0
     quantity = pd.to_numeric(row.get('Quantity'), errors='coerce')
-    people_per_beneficiary = pd.to_numeric(row.get('People_Per_Beneficiary'), errors='coerce')
     unit = str(row.get('Unit', '')).strip().upper()
     
-    # Flag cash for manual review - too ambiguous
+    # Flag cash for manual review
     if unit in ['PESOS', 'PHP', 'CASH', 'PESO']:
         return None
     
@@ -14,11 +17,31 @@ def calculate_beneficiaries(row):
     if pd.isna(quantity) or quantity == 0:
         return None
     
-    # If People_Per_Beneficiary is missing, can't calculate
+    # Calculate beneficiary units
+    return count / quantity
+
+
+def calculate_individuals(row):
+    """
+    Calculate number of individuals served
+    Formula: (Count / Quantity) × People_Per_Beneficiary
+    """
+    count = pd.to_numeric(row.get('Count', 0), errors='coerce') or 0
+    quantity = pd.to_numeric(row.get('Quantity'), errors='coerce')
+    people_per_beneficiary = pd.to_numeric(row.get('People_Per_Beneficiary'), errors='coerce')
+    unit = str(row.get('Unit', '')).strip().upper()
+    
+    # Flag cash for manual review
+    if unit in ['PESOS', 'PHP', 'CASH', 'PESO']:
+        return None
+    
+    # If any required field is missing, can't calculate
+    if pd.isna(quantity) or quantity == 0:
+        return None
     if pd.isna(people_per_beneficiary) or people_per_beneficiary == 0:
         return None
     
-    # Calculate: (Count / Items_Per_Beneficiary) × People_Per_Beneficiary
+    # Calculate individuals
     beneficiary_units = count / quantity
     return beneficiary_units * people_per_beneficiary
 
@@ -77,9 +100,10 @@ def transform_to_output_schema(df):
 
     output_df['Unit'] = output_df.get('Unit', None)
     # Calculate beneficiaries using the new logic
-    output_df['# of Beneficiaries Served'] = output_df.apply(calculate_beneficiaries, axis=1)
+    output_df['# of Beneficiaries Served'] = output_df.apply(calculate_beneficiary_units, axis=1)
+    output_df['Number of Individuals'] = output_df.apply(calculate_individuals, axis=1)
 
-    # Update Validation Status to include beneficiary issues
+    
     def determine_validation_status(row):
         has_mapping_error = (
             pd.isna(row.get('Sector')) or 
@@ -87,7 +111,11 @@ def transform_to_output_schema(df):
             str(row.get('Activity', '')).strip().upper() == 'NEEDS MAPPING' or
             str(row.get('Sector', '')).strip().upper() == 'NEEDS MAPPING'
         )
-        has_beneficiary_error = pd.isna(row.get('# of Beneficiaries Served'))
+        # Check BOTH beneficiary columns
+        has_beneficiary_error = (
+            pd.isna(row.get('# of Beneficiaries Served')) and 
+            pd.isna(row.get('Number of Individuals'))
+        )
         has_duplicate_mapping = row.get('Duplicate_Mapping_Flag') == 'DUPLICATE MAPPING'
         
         if has_duplicate_mapping:
@@ -152,12 +180,28 @@ def transform_to_output_schema(df):
     output_df['Remarks'] = output_df.get('Additional Comments', None)
     output_df['Date Modified'] = None
     
-    # Financial calculations
+# Financial calculations
     output_df['Count'] = pd.to_numeric(output_df['Count'], errors='coerce').fillna(0)
     output_df['ACTIVITY COSTING'] = pd.to_numeric(output_df.get('COST', 0), errors='coerce').fillna(0)
-    output_df['Total Cost'] = output_df['ACTIVITY COSTING'] * output_df['Count']
-    output_df['QTY'] = output_df['Count']
 
+    def calculate_total_cost(row):
+        unit = str(row.get('Unit', '')).strip().upper()
+        count = row.get('Count', 0)
+        activity_cost = row.get('ACTIVITY COSTING', 0)
+        beneficiaries = row.get('# of Beneficiaries Served', 0)
+        
+        # If unit is cash/pesos, multiply beneficiaries × cost per household
+        if unit in ['PESOS', 'PHP', 'CASH', 'PESO']:
+            # Use beneficiaries if available, otherwise fall back to count
+            num_recipients = beneficiaries if pd.notna(beneficiaries) and beneficiaries > 0 else count
+            return num_recipients * activity_cost
+        else:
+            # For items, it's count × unit cost
+            return activity_cost * count
+
+    output_df['Total Cost'] = output_df.apply(calculate_total_cost, axis=1)
+    output_df['QTY'] = output_df['Count']
+    
     # Final safety filter - remove any zeros that shouldn't be there
     output_df = output_df[output_df['Count'] > 0]
     
@@ -169,7 +213,7 @@ def transform_to_output_schema(df):
         "DSR Intervention Team", "Count", "Unit", "# of Beneficiaries Served",
         "Primary Beneficiary Served", "DSR Unit", "Status", "Start Date", "End Date",
         "Source", "Signature", "Weather System", "Remarks", "Date Modified",
-        "ACTIVITY COSTING", "Total Cost", "Month", "Validation Status",
+        "ACTIVITY COSTING", "Total Cost", "Month", "Validation Status", "Number of Individuals",
         "Source_Filename", "Source_Row_Number"  # ← ADD THESE
     ]
     
@@ -229,7 +273,7 @@ def transform_to_opcen_format(df):
     output_df['PHOTO LINK'] = None
     
     # Calculate beneficiaries using the same logic as DMS 5W
-    output_df['BENEFICIARIES'] = output_df.apply(calculate_beneficiaries, axis=1)
+    output_df['BENEFICIARIES'] = output_df.apply(calculate_beneficiary_units, axis=1)
     
     # Select final columns in correct order
     opcen_columns = [
@@ -238,9 +282,7 @@ def transform_to_opcen_format(df):
         'MENU', 'MEALS', 'PARTNERS', 'PLATE NUMBER', 'VEHICLE',
         'LATITUDE', 'LONGITUDE', 'PHOTO LINK', 'BENEFICIARIES'
     ]
-    
-    # Calculate beneficiaries using the same logic as DMS 5W
-    output_df['BENEFICIARIES'] = output_df.apply(calculate_beneficiaries, axis=1)
+
 
     # Final safety filter - remove any zeros that shouldn't be there
     output_df = output_df[output_df['QTY'] > 0]
