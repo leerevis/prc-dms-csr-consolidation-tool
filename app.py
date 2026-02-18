@@ -428,147 +428,143 @@ with tab2:
             st.stop()
 
     # Process all files (rest of your code stays the same from here)
-    # Add a big RUN button
     if files_to_process:
-        run_button = st.button("Run", type="primary", use_container_width=True)
-        
-        if run_button:
-            st.info(f"🔄 Processing {len(files_to_process)} file(s)...")
+        st.info(f"🔄 Processing {len(files_to_process)} file(s)...")
 
         #import os
         #if os.path.exists('/tmp/debug_fuzzy.txt'):
         #    os.remove('/tmp/debug_fuzzy.txt')
         
-            all_outputs = []
-            progress_bar = st.progress(0)
+        all_outputs = []
+        progress_bar = st.progress(0)
         
-            for idx, file in enumerate(files_to_process):
-                try:
-                    if isinstance(file, GoogleSheetWrapper):
-                        st.write(f"**Processing:** {file.name}")
-                        df = file.df
-                        
-                        # Identify static vs activity columns
-                        activity_cols = [col for col in df.columns if not is_static_column(col, STATIC_COLUMNS)]
-                        existing_static_cols = [col for col in df.columns if is_static_column(col, STATIC_COLUMNS)]
-                        
-                        # Unpivot
-                        melted_df = pd.melt(df, id_vars=existing_static_cols, value_vars=activity_cols, 
-                                        var_name='RawItemName', value_name='Count')
-                        
-                        # Add source tracking
-                        melted_df['Source_Filename'] = file.name
-                        melted_df['Source_Row_Number'] = melted_df.index + header_row + 1
+    for idx, file in enumerate(files_to_process):
+        try:
+            if isinstance(file, GoogleSheetWrapper):
+                st.write(f"**Processing:** {file.name}")
+                df = file.df
+                
+                # Identify static vs activity columns
+                activity_cols = [col for col in df.columns if not is_static_column(col, STATIC_COLUMNS)]
+                existing_static_cols = [col for col in df.columns if is_static_column(col, STATIC_COLUMNS)]
+                
+                # Unpivot
+                melted_df = pd.melt(df, id_vars=existing_static_cols, value_vars=activity_cols, 
+                                var_name='RawItemName', value_name='Count')
+                
+                # Add source tracking
+                melted_df['Source_Filename'] = file.name
+                melted_df['Source_Row_Number'] = melted_df.index + header_row + 1
 
-                        # Clean - convert to numeric (blanks become NaN)
-                        melted_df['Count'] = pd.to_numeric(melted_df['Count'], errors='coerce')
+                # Clean - convert to numeric (blanks become NaN)
+                melted_df['Count'] = pd.to_numeric(melted_df['Count'], errors='coerce')
 
-                        # Remove NaN and zeros
-                        melted_df = melted_df[melted_df['Count'].notna()]
-                        melted_df = melted_df[melted_df['Count'] > 0]
-                        
-                        if not melted_df.empty:
-                            # Fuzzy match and merge
-                            melted_df['MatchedActivity'] = melted_df['RawItemName'].apply(
-                                lambda x: fuzzy_match_activity(x, mapping_df) or x
-                            )
-                            processed_df = melted_df.merge(mapping_df, left_on='MatchedActivity', 
-                                                        right_on='RawItemName', how='left')
-                        else:
-                            processed_df = None
-                    
-                    else:
-                        # Regular file processing
-                        st.write(f"**Processing file:** {file.name}")
-                        processed_df = process_single_file(file, mapping_df, sheet_name, header_row, STATIC_COLUMNS)
-                    
-                    # Transform the processed data (common for both paths)
-                    if processed_df is not None:
-                        st.write(f"✅ Processed {len(processed_df)} rows")
-                        
-                        if output_format == "DMS 5W":
-                            output_df = transform_to_output_schema(processed_df)
-                        elif output_format == "OpCen DSR Daily Assistance":
-                            output_df = transform_to_opcen_format(processed_df)
-                        
-                        all_outputs.append(output_df)
-                        st.write(f"✅ Transformed to {len(output_df)} output rows")
-                    else:
-                        st.warning(f"⚠️ No valid data found in file")
+                # Remove NaN and zeros
+                melted_df = melted_df[melted_df['Count'].notna()]
+                melted_df = melted_df[melted_df['Count'] > 0]
                 
-                except Exception as e:
-                    file_name = file.name if hasattr(file, 'name') else 'Unknown file'
-                    st.error(f"❌ Error processing {file_name}: {str(e)}")
-                    st.exception(e)
-                
-                # Update progress
-                progress_bar.progress((idx + 1) / len(files_to_process))
-                
-            # Check if we got any valid data
-            if not all_outputs:
-                st.error("❌ No valid data found in the uploaded files")
-                st.stop()
+                if not melted_df.empty:
+                    # Fuzzy match and merge
+                    melted_df['MatchedActivity'] = melted_df['RawItemName'].apply(
+                        lambda x: fuzzy_match_activity(x, mapping_df) or x
+                    )
+                    processed_df = melted_df.merge(mapping_df, left_on='MatchedActivity', 
+                                                right_on='RawItemName', how='left')
+                else:
+                    processed_df = None
             
-            # Concatenate all outputs
-            final_df = pd.concat(all_outputs, ignore_index=True)
-
-            st.success(f"✅ Successfully processed {len(files_to_process)} file(s)!")
-
-        # Upload to BigQuery
-        #st.info("📤 Uploading to BigQuery data lake...")
+            else:
+                # Regular file processing
+                st.write(f"**Processing file:** {file.name}")
+                processed_df = process_single_file(file, mapping_df, sheet_name, header_row, STATIC_COLUMNS)
+            
+            # Transform the processed data (common for both paths)
+            if processed_df is not None:
+                st.write(f"✅ Processed {len(processed_df)} rows")
+                
+                if output_format == "DMS 5W":
+                    output_df = transform_to_output_schema(processed_df)
+                elif output_format == "OpCen DSR Daily Assistance":
+                    output_df = transform_to_opcen_format(processed_df)
+                
+                all_outputs.append(output_df)
+                st.write(f"✅ Transformed to {len(output_df)} output rows")
+            else:
+                st.warning(f"⚠️ No valid data found in file")
         
-        #try:
-        #from bigquery_utils import upload_to_bigquery
-            
-        #    total_affected, new_count, updated_count = upload_to_bigquery(
-            #       final_df, 
-            #      credentials_dict, 
-            #     uploaded_by="Streamlit User"  # TODO: Add user tracking
-            #)
-            
-            #st.success(f"✅ BigQuery upload complete: {new_count} new records, {updated_count} updated records")
-        #except Exception as e:
-            #   st.warning(f"⚠️ BigQuery upload failed: {str(e)}")
-            #  st.write("Data is still available for download below.")
+        except Exception as e:
+            file_name = file.name if hasattr(file, 'name') else 'Unknown file'
+            st.error(f"❌ Error processing {file_name}: {str(e)}")
+            st.exception(e)
         
-    # Summary statistics
-        # Summary statistics
-        st.subheader("📊 Summary")
-        st.metric("Total Records", len(final_df))
-
-        # ADD THIS HERE - Debug file download
-        #import os
-        #if os.path.exists('/tmp/debug_fuzzy.txt'):
-        #    with open('/tmp/debug_fuzzy.txt', 'r') as f:
-        #        debug_content = f.read()
-            
-        #    st.download_button(
-        #        label="📥 Download Debug Log",
-        #        data=debug_content,
-        #        file_name="fuzzy_debug.txt",
-        #        mime="text/plain"
-        #    )
+        # Update progress
+        progress_bar.progress((idx + 1) / len(files_to_process))
+        
+    # Check if we got any valid data
+    if not all_outputs:
+        st.error("❌ No valid data found in the uploaded files")
+        st.stop()
     
-        # Show preview
-        st.subheader("📋 Final Output Preview")
-        st.dataframe(final_df.head(20))
+    # Concatenate all outputs
+    final_df = pd.concat(all_outputs, ignore_index=True)
 
-        # Create Excel file
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            final_df.to_excel(writer, index=False, sheet_name='Mapped Activities')
-        output.seek(0)
+    st.success(f"✅ Successfully processed {len(files_to_process)} file(s)!")
 
-        # Download section
-        st.markdown("<h3 style='text-align: center;'>📥 Download</h3>", unsafe_allow_html=True)
+    # Upload to BigQuery
+    #st.info("📤 Uploading to BigQuery data lake...")
+    
+    #try:
+    #from bigquery_utils import upload_to_bigquery
+        
+    #    total_affected, new_count, updated_count = upload_to_bigquery(
+        #       final_df, 
+        #      credentials_dict, 
+        #     uploaded_by="Streamlit User"  # TODO: Add user tracking
+        #)
+        
+        #st.success(f"✅ BigQuery upload complete: {new_count} new records, {updated_count} updated records")
+    #except Exception as e:
+        #   st.warning(f"⚠️ BigQuery upload failed: {str(e)}")
+        #  st.write("Data is still available for download below.")
+    
+# Summary statistics
+    # Summary statistics
+    st.subheader("📊 Summary")
+    st.metric("Total Records", len(final_df))
 
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.download_button(
-                label="📥 Download Consolidated Report",
-                data=output,
-                file_name=f"DSR_Consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                type="primary",
-                use_container_width=True
-            )
+    # ADD THIS HERE - Debug file download
+    #import os
+    #if os.path.exists('/tmp/debug_fuzzy.txt'):
+    #    with open('/tmp/debug_fuzzy.txt', 'r') as f:
+    #        debug_content = f.read()
+        
+    #    st.download_button(
+    #        label="📥 Download Debug Log",
+    #        data=debug_content,
+    #        file_name="fuzzy_debug.txt",
+    #        mime="text/plain"
+    #    )
+    
+    # Show preview
+    st.subheader("📋 Final Output Preview")
+    st.dataframe(final_df.head(20))
+
+    # Create Excel file
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        final_df.to_excel(writer, index=False, sheet_name='Mapped Activities')
+    output.seek(0)
+
+    # Download section
+    st.markdown("<h3 style='text-align: center;'>📥 Download</h3>", unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.download_button(
+            label="📥 Download Consolidated Report",
+            data=output,
+            file_name=f"DSR_Consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            type="primary",
+            use_container_width=True
+        )
