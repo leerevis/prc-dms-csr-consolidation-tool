@@ -506,7 +506,11 @@ with tab2:
         st.stop()
     
     # Concatenate all outputs
-    final_df = pd.concat(all_outputs, ignore_index=True)
+    if all_outputs:
+        final_df = pd.concat(all_outputs, ignore_index=True, sort=False)
+    else:
+        st.error("❌ No valid data found")
+        st.stop()
 
     st.success(f"✅ Successfully processed {len(files_to_process)} file(s)!")
 

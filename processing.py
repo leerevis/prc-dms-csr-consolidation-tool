@@ -20,9 +20,16 @@ def process_single_file(file, mapping_df, sheet_name, header_row, static_columns
             skiprows=header_row-1,
             dtype=str
         )
-        
+
         # STANDARDIZE COLUMN NAMES - remove extra spaces, strip whitespace
         df.columns = df.columns.str.strip().str.replace(r'\s+', ' ', regex=True)
+
+        # Clean numeric columns - remove commas and convert
+        numeric_cols = ['COST', 'Quantity', 'People_Per_Beneficiary']
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = df[col].astype(str).str.replace(',', '').replace('', None)
+                df[col] = pd.to_numeric(df[col], errors='coerce')
         
     except ValueError as e:
         # Sheet name not found

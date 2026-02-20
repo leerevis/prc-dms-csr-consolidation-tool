@@ -190,8 +190,16 @@ def read_google_sheet(sheet_id, credentials_dict, sheet_name='Chapter Relief', h
         #    f.write(f"Headers from data[{header_idx}]: {headers[:5]}\n")
         #    f.write(f"First data row: {data_rows[0][:5] if data_rows else 'No data'}\n")
 
+        # Create DataFrame
         df = pd.DataFrame(data_rows, columns=headers)
-        
+
+        # Clean numeric columns - remove commas and convert
+        numeric_cols = ['COST', 'Quantity', 'People_Per_Beneficiary']
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = df[col].astype(str).str.replace(',', '').replace('', None)
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+
         return df
         
     except gspread.exceptions.APIError as e:
