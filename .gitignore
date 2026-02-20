@@ -5,6 +5,9 @@ bigquery_setup/
 google_credentials.json
 *.json
 
+# Streamlit secrets
+.streamlit/secrets.toml
+
 # User guide
 Chapter Statistical Report Tool.docx
 
