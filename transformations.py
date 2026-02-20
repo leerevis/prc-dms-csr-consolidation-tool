@@ -201,7 +201,7 @@ def transform_to_output_schema(df):
 
     output_df['Total Cost'] = output_df.apply(calculate_total_cost, axis=1)
     output_df['QTY'] = output_df['Count']
-    
+
     # Final safety filter - remove any zeros that shouldn't be there
     output_df = output_df[output_df['Count'] > 0]
     
@@ -283,11 +283,7 @@ def transform_to_opcen_format(df):
         'LATITUDE', 'LONGITUDE', 'PHOTO LINK', 'BENEFICIARIES'
     ]
 
-
     # Final safety filter - remove any zeros that shouldn't be there
     output_df = output_df[output_df['QTY'] > 0]
-
-    # Select final columns in correct order
-    opcen_columns = [...]
 
     return output_df[opcen_columns]
