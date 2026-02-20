@@ -5,6 +5,9 @@ bigquery_setup/
 google_credentials.json
 *.json
 
+# User guide
+Chapter Statistical Report Tool.docx
+
 # Python cache
 __pycache__/
 *.pyc
