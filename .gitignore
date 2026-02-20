@@ -8,9 +8,6 @@ google_credentials.json
 # Streamlit secrets
 .streamlit/secrets.toml
 
-# User guide
-Chapter Statistical Report Tool.docx
-
 # Python cache
 __pycache__/
 *.pyc
