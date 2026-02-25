@@ -553,10 +553,9 @@ with tab2:
     st.subheader("📋 Final Output Preview")
     st.dataframe(final_df.head(20))
 
-    # Create Excel file
+    # Create CSV file
     output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        final_df.to_excel(writer, index=False, sheet_name='Mapped Activities')
+    final_df.to_csv(output, index=False)
     output.seek(0)
 
     # Download section
@@ -567,8 +566,8 @@ with tab2:
         st.download_button(
             label="📥 Download Consolidated Report",
             data=output,
-            file_name=f"DSR_Consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            file_name=f"DSR_Consolidated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",  # ← Changed to .csv
+            mime="text/csv",  # ← Changed mime type
             type="primary",
             use_container_width=True
         )
