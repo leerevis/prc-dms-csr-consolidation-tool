@@ -1,0 +1,37 @@
+index,Highly Urbanized Cities (HUC),HUC Code,p_code,core_name,city_first,city_last,clean_name
+0,City Of Manila,PH133900000,PH133900,Manila,City of Manila,Manila City,manila
+1,City Of Mandaluyong,PH137401000,PH137401,Mandaluyong,City of Mandaluyong,Mandaluyong City,mandaluyong
+2,City Of Marikina ,PH137402000,PH137402,Marikina,City of Marikina,Marikina City,marikina
+3,City Of Pasig ,PH137403000,PH137403,Pasig,City of Pasig,Pasig City,pasig
+4,Quezon City,PH137404000,PH137404,Quezon,City of Quezon,Quezon City,quezon
+5,City Of San Juan,PH137405000,PH137405,San Juan,City of San Juan,San Juan City,san juan
+6,City Of Caloocan,PH137501000,PH137501,Caloocan,City of Caloocan,Caloocan City,caloocan
+7,City Of Malabon,PH137502000,PH137502,Malabon,City of Malabon,Malabon City,malabon
+8,City Of Navotas,PH137503000,PH137503,Navotas,City of Navotas,Navotas City,navotas
+9,City Of Valenzuela,PH137504000,PH137504,Valenzuela,City of Valenzuela,Valenzuela City,valenzuela
+10,City Of Las Piñas,PH137601000,PH137601,Las Piñas,City of Las Piñas,Las Piñas City,las pinas
+11,City Of Makati,PH137602000,PH137602,Makati,City of Makati,Makati City,makati
+12,City Of Muntinlupa,PH137603000,PH137603,Muntinlupa,City of Muntinlupa,Muntinlupa City,muntinlupa
+13,City Of Parañaque,PH137604000,PH137604,Parañaque,City of Parañaque,Parañaque City,paranaque
+14,Pasay City,PH137605000,PH137605,Pasay,City of Pasay,Pasay City,pasay
+15,Pateros,PH137606000,PH137606,Pateros,City of Pateros,Pateros City,pateros
+16,City Of Taguig,PH137607000,PH137607,Taguig,City of Taguig,Taguig City,taguig
+17,City Of Baguio,PH141102000,PH141102,Baguio,City of Baguio,Baguio City,baguio
+18,City Of Angeles,PH035401000,PH035401,Angeles,City of Angeles,Angeles City,angeles
+19,City Of Olongapo,PH037107000,PH037107,Olongapo,City of Olongapo,Olongapo City,olongapo
+20,City Of Lucena,PH045624000,PH045624,Lucena,City of Lucena,Lucena City,lucena
+21,City Of Puerto Princesa,PH175316000,PH175316,Puerto Princesa,City of Puerto Princesa,Puerto Princesa City,puerto princesa
+22,City Of Iloilo ,PH063022000,PH063022,Iloilo,City of Iloilo,Iloilo City,iloilo
+23,City Of Bacolod ,PH064501000,PH064501,Bacolod,City of Bacolod,Bacolod City,bacolod
+24,City Of Cebu ,PH072217000,PH072217,Cebu,City of Cebu,Cebu City,cebu
+25,City Of Lapu-Lapu (Opon),PH072226000,PH072226,Lapu-Lapu,City of Lapu-Lapu,Lapu-Lapu City,lapulapu
+26,City Of Mandaue,PH072230000,PH072230,Mandaue,City of Mandaue,Mandaue City,mandaue
+27,City Of Tacloban,PH083747000,PH083747,Tacloban,City of Tacloban,Tacloban City,tacloban
+28,City Of Zamboanga,PH097332000,PH097332,Zamboanga,City of Zamboanga,Zamboanga City,zamboanga
+29,City Of Isabela,PH099701000,PH099701,Isabela,City of Isabela,Isabela City,isabela
+30,City Of Iligan,PH103504000,PH103504,Iligan,City of Iligan,Iligan City,iligan
+31,City Of Cagayan De Oro,PH104305000,PH104305,Cagayan De Oro,City of Cagayan De Oro,Cagayan De Oro City,cagayan de oro
+32,City Of Davao,PH112402000,PH112402,Davao,City of Davao,Davao City,davao
+33,City Of General Santos (Dadiangas),PH126303000,PH126303,General Santos,City of General Santos,General Santos City,general santos
+34,City Of Cotabato,PH129804000,PH129804,Cotabato,City of Cotabato,Cotabato City,cotabato
+35,City Of Butuan,PH160202000,PH160202,Butuan,City of Butuan,Butuan City,butuan
