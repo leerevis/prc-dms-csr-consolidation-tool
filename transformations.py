@@ -1,4 +1,72 @@
 import pandas as pd
+import os
+from thefuzz import process
+
+# Load PCode reference data
+script_dir = os.path.dirname(__file__)
+pcode_path = os.path.join(script_dir, 'data', 'phl_adminareas_fixed.csv')
+pcode_df = pd.read_csv(pcode_path)
+
+from thefuzz import process
+
+def add_pcodes(output_df):
+    """
+    Add Philippine administrative codes (PCodes) by matching location names.
+    Uses fuzzy matching for Province and Municipality.
+    """
+    
+    # Only process rows with Province data
+    has_province = output_df['Province'].notna() & (output_df['Province'] != '')
+    
+    if not has_province.any():
+        return output_df
+    
+    # Get unique provinces and municipalities from PCode file
+    province_list = pcode_df['adm2_clean'].dropna().unique().tolist()
+    
+    # Fuzzy match Province
+    def match_province(prov):
+        if pd.isna(prov) or prov == '':
+            return None, None, None
+        
+        cleaned = str(prov).strip().lower()
+        match = process.extractOne(cleaned, province_list, score_cutoff=85)
+        
+        if match:
+            matched_name = match[0]
+            # Get the PCode and Region for this province
+            pcode_row = pcode_df[pcode_df['adm2_clean'] == matched_name].iloc[0]
+            return pcode_row['ADM2_new'], pcode_row['ADM1_EN'], matched_name
+        return None, None, None
+    
+    # Apply province matching
+    matched = output_df[has_province]['Province'].apply(match_province)
+    output_df.loc[has_province, 'Prov_CODE'] = matched.apply(lambda x: x[0])
+    output_df.loc[has_province, 'Region'] = matched.apply(lambda x: x[1])
+    
+    # Fuzzy match Municipality (filter by province for accuracy)
+    def match_municipality(row):
+        if pd.isna(row['Municipality/City']) or row['Municipality/City'] == '':
+            return None
+        if pd.isna(row['Prov_CODE']):
+            return None
+        
+        # Get municipalities for this province only
+        mun_list = pcode_df[pcode_df['ADM2_new'] == row['Prov_CODE']]['adm3_clean'].dropna().unique().tolist()
+        
+        cleaned = str(row['Municipality/City']).strip().lower()
+        match = process.extractOne(cleaned, mun_list, score_cutoff=85)
+        
+        if match:
+            matched_name = match[0]
+            pcode_row = pcode_df[(pcode_df['ADM2_new'] == row['Prov_CODE']) & 
+                                (pcode_df['adm3_clean'] == matched_name)].iloc[0]
+            return pcode_row['ADM3_new']
+        return None
+    
+    output_df.loc[has_province, 'Mun_Code'] = output_df[has_province].apply(match_municipality, axis=1)
+    
+    return output_df
 
 def calculate_beneficiary_units(row):
     """
@@ -131,17 +199,8 @@ def transform_to_output_schema(df):
 
     output_df['Validation Status'] = output_df.apply(determine_validation_status, axis=1)
 
-    # DEBUG: Show what's happening
-    print("DEBUG: Beneficiary calculation results")
-    print(f"Total rows: {len(output_df)}")
-    print(f"Calculated: {output_df['# of Beneficiaries Served'].notna().sum()}")
-    print(f"Missing: {output_df['# of Beneficiaries Served'].isna().sum()}")
-    print("\nSample row with data:")
-    sample = output_df[['Count', 'Quantity', 'People_Per_Beneficiary', 'Unit', '# of Beneficiaries Served']].head(3)
-    print(sample)
-
     
-    # Location columns
+    # Location columns (initialize as None, will be filled by PCodes)
     output_df['Region'] = None
     output_df['Province'] = output_df.get('Province', None)
     output_df['Prov_CODE'] = None
@@ -149,7 +208,10 @@ def transform_to_output_schema(df):
     output_df['Mun_Code'] = None
     output_df['Barangay'] = output_df.get('Barangay', None)
     output_df['Place Name'] = output_df.get('Location Notes/Place/Evacuation Center', 
-                                             output_df.get('Location Notes/Place /Evacuation Center', None))
+                                            output_df.get('Location Notes/Place /Evacuation Center', None))
+
+    # Add PCodes
+    output_df = add_pcodes(output_df)
     
     # Operational columns
     output_df['DSR Intervention Team'] = None
@@ -214,7 +276,7 @@ def transform_to_output_schema(df):
         "Primary Beneficiary Served", "DSR Unit", "Status", "Start Date", "End Date",
         "Source", "Signature", "Weather System", "Remarks", "Date Modified",
         "ACTIVITY COSTING", "Total Cost", "Month", "Validation Status", "Number of Individuals",
-        "Source_Filename", "Source_Row_Number"  # ← ADD THESE
+        "Source_Filename", "Source_Row_Number" 
     ]
     
     # Only include columns that exist
