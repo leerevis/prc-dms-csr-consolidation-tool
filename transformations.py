@@ -1,70 +1,102 @@
 import pandas as pd
 import os
 from thefuzz import process
+from unidecode import unidecode
 
 # Load PCode reference data
 script_dir = os.path.dirname(__file__)
 pcode_path = os.path.join(script_dir, 'data', 'phl_adminareas_fixed.csv')
 pcode_df = pd.read_csv(pcode_path)
 
-from thefuzz import process
+def get_clean_names(origin_column):
+    new_column = origin_column.str.casefold()
+    strings_to_remove = [
+        r"\(.*\)", "city of", "city", "brgy.", "barangay", "region", 
+        "province of", "municipality of", "-", r"\*", ","
+    ]
+    for string in strings_to_remove:
+        new_column = new_column.str.replace(string, "", regex=True)
+    
+    # Handle period separately as literal, not regex
+    new_column = new_column.str.replace(".", "", regex=False)
+    
+    new_column = new_column.apply(unidecode)
+    
+    # Roman numerals
+    numeral_dict = {
+        r"\si($|\s)": " 1",
+        r"\sii($|\s)": " 2",
+        r"\siii($|\s)": " 3",
+        r"\siv($|\s)": " 4",
+        r"\sv($|\s)": " 5",
+        r"\svi($|\s)": " 6",
+        r"\svii($|\s)": " 7",
+        r"\sviii($|\s)": " 8",
+        r"\six($|\s)": " 9",
+        r"\sx($|\s)": " 10",
+        r"\sxi($|\s)": " 11",
+        r"\sxii($|\s)": " 12",
+        r"\sxiii($|\s)": " 13"
+    }
+    for roman, arabic in numeral_dict.items():
+        new_column = new_column.str.replace(roman, arabic, regex=True)
+    
+    # st. and sta.
+    new_column = new_column.str.replace("st.", "san", regex=False)
+    new_column = new_column.str.replace("sta.", "santa", regex=False)
+    
+    new_column = new_column.str.strip()
+    return new_column
 
 def add_pcodes(output_df):
-    """
-    Add Philippine administrative codes (PCodes) by matching location names.
-    Uses fuzzy matching for Province and Municipality.
-    """
+    """Add PCodes by matching location names."""
     
-    # Only process rows with Province data
     has_province = output_df['Province'].notna() & (output_df['Province'] != '')
     
     if not has_province.any():
         return output_df
     
-    # Get unique provinces and municipalities from PCode file
+    # Clean the entire columns first, then filter
+    output_df['province_clean'] = get_clean_names(output_df['Province'].fillna(''))
+    output_df['mun_clean'] = get_clean_names(output_df['Municipality/City'].fillna(''))
+    
     province_list = pcode_df['adm2_clean'].dropna().unique().tolist()
     
-    # Fuzzy match Province
-    def match_province(prov):
-        if pd.isna(prov) or prov == '':
-            return None, None, None
+    # Match province
+    def match_province(row):
+        if not row['province_clean']:
+            return pd.Series([None, None])
         
-        cleaned = str(prov).strip().lower()
-        match = process.extractOne(cleaned, province_list, score_cutoff=85)
+        match = process.extractOne(row['province_clean'], province_list, score_cutoff=80)
         
         if match:
             matched_name = match[0]
-            # Get the PCode and Region for this province
             pcode_row = pcode_df[pcode_df['adm2_clean'] == matched_name].iloc[0]
-            return pcode_row['ADM2_new'], pcode_row['ADM1_EN'], matched_name
-        return None, None, None
+            return pd.Series([pcode_row['ADM2_new'], pcode_row['ADM1_EN']])
+        return pd.Series([None, None])
     
-    # Apply province matching
-    matched = output_df[has_province]['Province'].apply(match_province)
-    output_df.loc[has_province, 'Prov_CODE'] = matched.apply(lambda x: x[0])
-    output_df.loc[has_province, 'Region'] = matched.apply(lambda x: x[1])
+    output_df[['Prov_CODE', 'Region']] = output_df[has_province].apply(match_province, axis=1)
     
-    # Fuzzy match Municipality (filter by province for accuracy)
+    # Match municipality
     def match_municipality(row):
-        if pd.isna(row['Municipality/City']) or row['Municipality/City'] == '':
-            return None
-        if pd.isna(row['Prov_CODE']):
+        if not row['mun_clean'] or pd.isna(row['Prov_CODE']):
             return None
         
-        # Get municipalities for this province only
         mun_list = pcode_df[pcode_df['ADM2_new'] == row['Prov_CODE']]['adm3_clean'].dropna().unique().tolist()
-        
-        cleaned = str(row['Municipality/City']).strip().lower()
-        match = process.extractOne(cleaned, mun_list, score_cutoff=85)
+        match = process.extractOne(row['mun_clean'], mun_list, score_cutoff=80)
         
         if match:
             matched_name = match[0]
             pcode_row = pcode_df[(pcode_df['ADM2_new'] == row['Prov_CODE']) & 
-                                (pcode_df['adm3_clean'] == matched_name)].iloc[0]
-            return pcode_row['ADM3_new']
+                                (pcode_df['adm3_clean'] == matched_name)]
+            if not pcode_row.empty:
+                return pcode_row.iloc[0]['ADM3_new']
         return None
     
     output_df.loc[has_province, 'Mun_Code'] = output_df[has_province].apply(match_municipality, axis=1)
+    
+    # Clean up
+    output_df = output_df.drop(['province_clean', 'mun_clean'], axis=1, errors='ignore')
     
     return output_df
 
