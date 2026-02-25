@@ -16,14 +16,18 @@ This tool consolidates Philippine Red Cross Chapter Statistical Reports (Excel/G
 
 ## Project Structure
 ```
-├── app.py                  # Main Streamlit UI and orchestration
-├── config.py               # Static settings (column names, defaults)
-├── utils.py                # Helper functions (fuzzy matching, Google APIs)
-├── processing.py           # Data processing pipeline (unpivot, clean, merge)
-├── transformations.py      # Output schema transformation (DMS 5W / OpCen)
-├── bigquery_utils.py       # BigQuery integration (optional)
-├── requirements.txt        # Python dependencies
-└── .streamlit/secrets.toml # Google service account credentials (not in git)
+├── app.py                       # Main Streamlit UI and orchestration
+├── config.py                    # Static settings (column names, defaults)
+├── utils.py                     # Helper functions (fuzzy matching, Google APIs)
+├── processing.py                # Data processing pipeline (unpivot, clean, merge)
+├── transformations.py           # Output schema transformation (DMS 5W / OpCen)
+├── bigquery_utils.py            # BigQuery integration (optional)
+├── requirements.txt             # Python dependencies
+├── .streamlit/secrets.toml      # Google service account credentials (not in git)
+├── data/
+│   └── phl_adminareas_fixed.csv # PCode reference data (Philippine admin areas)
+├── bigquery_setup/              # One-time BigQuery setup scripts
+│   └──bigquery_setup.py
 ```
 
 ---
@@ -131,6 +135,48 @@ df['_original_row'] = df.index + header_row + 1
 melted_df['Source_Row_Number'] = melted_df['_original_row']
 
 Enables validators to trace back to source file and row.
+
+### PCode Integration
+# What are PCodes?
+Philippine Standard Geographic Codes (PSGCodes or PCodes) are unique identifiers for administrative areas. The tool automatically assigns these codes by matching location names.
+
+# How it works:
+
+1. Reference file: phl_adminareas_fixed.csv contains pre-cleaned admin area names and their PCodes
+
+2. Name cleaning: Uses get_clean_names() function to standardize location names:
+
+- Removes "City of", "Brgy.", "Province of", etc.
+- Converts Roman numerals to Arabic (Region I → Region 1)
+- Handles diacritics (Ñ → N)
+- Standardizes st./sta. to san/santa
+
+3. Fuzzy matching: Uses thefuzz library (80% threshold) to match cleaned names
+
+4. Hierarchical matching: Matches Province first (ADM2), then Municipality (ADM3) filtered by Province
+
+# Output columns:
+
+- Region - Region name (e.g., "Region I (Ilocos Region)")
+- Prov_CODE - Province PCode (ADM2_new from reference file)
+- Mun_Code - Municipality PCode (ADM3_new from reference file)
+
+# Limitations:
+
+- Only works for rows with Province data
+- Requires 80%+ similarity for match
+- Barangay-level codes (ADM4) not implemented
+- OpCen format does not include PCodes (Region field left blank)
+- Does not include the Negros Island Region (NIR) as a region
+
+# Updating the PCode reference file:
+Replace phl_adminareas_fixed.csv and redeploy. The file must have these columns:
+
+- adm2_clean - Cleaned province names
+- adm3_clean - Cleaned municipality names
+- ADM2_new - Province PCodes
+- ADM3_new - Municipality PCodes
+- ADM1_EN - Region names
 
 ---
 
